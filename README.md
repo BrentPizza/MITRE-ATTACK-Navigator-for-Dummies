@@ -12,17 +12,17 @@ APT28, APT29, Lazarus Group and APT41, captured directly from the live [MITRE AT
 
 Each T-code is colored by how many of the 4 groups use it or any of its sub-techniques.
 
-![ATT&CK Navigator, dark theme: parent-only overlap layer for APT28, APT29, Lazarus Group and APT41](docs/navigator_dark_parent_only.png)
+![ATT&CK Navigator, dark theme: parent-only overlap layer for APT28, APT29, Lazarus Group and APT41](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/navigator_dark_parent_only.png)
 
 ### Parent techniques and sub-techniques
 
 Sub-techniques expand beside their parents, and each one is colored by its own overlap. A parent can be red while some of its sub-techniques are only used by one group. Click the image for full size.
 
-![ATT&CK Navigator, dark theme: parent and sub-technique overlap layer for APT28, APT29, Lazarus Group and APT41](docs/navigator_dark_parent_and_sub.png)
+![ATT&CK Navigator, dark theme: parent and sub-technique overlap layer for APT28, APT29, Lazarus Group and APT41](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/navigator_dark_parent_and_sub.png)
 
 Close-up of the first tactics:
 
-![Close-up of the parent and sub-technique layer](docs/navigator_dark_parent_and_sub_detail.png)
+![Close-up of the parent and sub-technique layer](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/navigator_dark_parent_and_sub_detail.png)
 
 All files from this run (both layers, Excel, PDF and slide legends) are in [`examples/APT28_APT29_Lazarus_APT41`](examples/APT28_APT29_Lazarus_APT41).
 
@@ -78,8 +78,8 @@ Clip the matrix from ATT&CK Navigator into PowerPoint, then insert the matching 
 
 The PDF report for the same 4 groups (summary page and matrix):
 
-![PDF summary page](docs/summary.png)
-![PDF matrix with sub-techniques](docs/matrix_parent_and_sub.png)
+![PDF summary page](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/summary.png)
+![PDF matrix with sub-techniques](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/matrix_parent_and_sub.png)
 
 ## Quick start (Windows, no command line needed)
 
@@ -93,7 +93,7 @@ The PDF report for the same 4 groups (summary page and matrix):
    ```
 6. Confirm. The output folder opens automatically.
 
-The first run of each matrix downloads its ATT&CK dataset into `data/` (Enterprise is about 50 MB). Later runs reuse it.
+The ATT&CK data for all three matrices ships in `data/`, so the tool works straight after download, including on machines with no internet (see [Offline use](#offline-use)).
 
 Interactive commands:
 
@@ -125,9 +125,35 @@ Names don't need exact spacing or capitals (`AquaticPanda` works). Not every gro
 | `--no-campaigns` | ignore techniques from campaigns attributed to the groups (included by default, same as attack.mitre.org) |
 | `--include-software` / `--no-software` | count (or don't count) techniques of the malware and tools each group uses. Off by default for Enterprise, on by default for Mobile and ICS, where ATT&CK links most groups to techniques through their malware |
 | `--update` | re-download the latest ATT&CK data before running |
+| `--offline` | never use the network; run only from the ATT&CK data bundled in `data/` |
 | `--list` / `--search TEXT` | list or search the groups in the chosen matrix, then exit |
 | `--title "..."` | custom report title |
 | `--out DIR` | custom output folder |
+
+## Offline use
+
+The repo includes the MITRE ATT&CK data for all three matrices, so it runs on an air-gapped or offline machine:
+
+```
+data/
+├── enterprise-attack.json
+├── mobile-attack.json
+└── ics-attack.json
+```
+
+Add `--offline` to any command (or to the `.bat` launcher) to guarantee the tool never touches the network:
+
+```bash
+python attack_overlap.py --offline APT28 APT29 "Lazarus Group"
+python attack_overlap.py --offline mobile APT28 APT-C-23
+"Run ATTACK Overlap.bat" --offline
+```
+
+Offline runs produce exactly the same outputs as online runs: both Navigator layers, the Excel workbooks, the PDFs and the slide legends. The slide legend font is bundled too. Every run prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`.
+
+To refresh the bundled data, run once on a machine with internet using `--update`, then copy the updated `data/` folder across.
+
+The offline machine still needs Python 3.10+ and the packages in `requirements.txt` (`openpyxl`, `reportlab`, `pillow`). To prepare them on an internet-connected PC with the same Python version, run `pip download -r requirements.txt -d wheels`, copy the `wheels` folder over, then run `pip install --no-index --find-links wheels -r requirements.txt` on the offline machine.
 
 ## Loading the layer in ATT&CK Navigator
 

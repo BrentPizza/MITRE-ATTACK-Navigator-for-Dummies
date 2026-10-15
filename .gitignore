@@ -1,5 +1,5 @@
-# ATT&CK STIX data is downloaded automatically on first run (~50 MB)
-data/
+# ATT&CK STIX data in data/ is committed (for --offline); only ignore partial downloads
+data/*.tmp
 
 # Generated reports
 output/

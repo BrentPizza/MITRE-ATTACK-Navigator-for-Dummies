@@ -37,6 +37,7 @@ Usage:  python attack_overlap.py [mobile|ics] <groups...> [options]
     python attack_overlap.py mobile --list                     (list every Mobile group)
     python attack_overlap.py ics --search lazarus              (search names/aliases)
     python attack_overlap.py --update APT28 APT29              (re-download latest ATT&CK data)
+    python attack_overlap.py --offline APT28 APT29             (no network: use the data bundled in data/)
     python attack_overlap.py APT28 APT29 --mode parents        (only the parent-only set)
 """
 
@@ -85,11 +86,20 @@ BANDS = []         # (level, min groups, max groups) for this run; filled by set
 
 # --------------------------------------------------------------------------- data
 
-def load_bundle(domain="enterprise", update=False):
+def load_bundle(domain="enterprise", update=False, offline=False):
+    """Load the ATT&CK STIX bundle from data/ (the repo ships all three matrices).
+
+    offline: never touch the network; fail with a clear message if the file is missing.
+    update:  re-download the latest bundle from mitre/cti first.
+    """
     name, url = DOMAINS[domain]
-    DATA_DIR.mkdir(exist_ok=True)
     path = DATA_DIR / f"{name}.json"
-    if update or not path.exists():
+    if offline:
+        if not path.exists():
+            sys.exit(f"Offline mode: {path} is missing. Copy it from the repo (data/{name}.json) "
+                     f"or run once with internet access.")
+    elif update or not path.exists():
+        DATA_DIR.mkdir(exist_ok=True)
         print(f"Downloading latest MITRE ATT&CK {DOMAIN_LABEL[domain]} data...")
         tmp = path.with_suffix(".tmp")
         urllib.request.urlretrieve(url, tmp)
@@ -1030,6 +1040,8 @@ def main():
                     help="which outputs to build: parent-only, parent+sub-techniques, or both (default)")
     ap.add_argument("--domain", choices=list(DOMAINS), help=argparse.SUPPRESS)  # older spelling of the matrix word
     ap.add_argument("--update", action="store_true", help="re-download the latest ATT&CK data first")
+    ap.add_argument("--offline", action="store_true",
+                    help="never use the network: run only from the ATT&CK data bundled in data/")
     ap.add_argument("--title", help="custom report title")
     ap.add_argument("--out", help="output folder (default: ./output/<timestamp>_<groups>)")
     args = ap.parse_args()
@@ -1057,8 +1069,12 @@ def main():
         # Mobile/ICS groups are mostly linked to techniques through their malware, so count software there by default.
         args.software = domain != "enterprise"
 
-    bundle, domain_name, _ = load_bundle(domain, args.update)
+    if args.offline and args.update:
+        ap.error("--offline and --update cannot be used together")
+    bundle, domain_name, data_path = load_bundle(domain, args.update, args.offline)
     attack = Attack(bundle, domain_name)
+    print(f"ATT&CK {label} data: {data_path.relative_to(HERE).as_posix()} (MITRE data as of {attack.data_modified})"
+          + ("  [offline]" if args.offline else ""))
     del bundle
 
     if args.list:

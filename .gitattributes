@@ -4,3 +4,4 @@
 *.xlsx binary
 *.png binary
 *.ttf binary
+data/*.json -text

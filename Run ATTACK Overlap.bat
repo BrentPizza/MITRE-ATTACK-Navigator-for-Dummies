@@ -7,7 +7,7 @@ where python >nul 2>nul || (
     pause
     exit /b 1
 )
-python -c "import openpyxl, reportlab" 2>nul || (
+python -c "import openpyxl, reportlab, PIL" 2>nul || (
     echo Installing required Python packages...
     python -m pip install --quiet -r requirements.txt
 )
