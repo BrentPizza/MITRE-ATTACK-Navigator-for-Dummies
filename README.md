@@ -4,11 +4,21 @@ Pick a few APT groups and get a color-coded ATT&CK overlap map with no clicking 
 
 The tool pulls the latest MITRE ATT&CK data for the **Enterprise** matrix (the default), or for **Mobile** or **ICS** if you ask for it. It finds every technique (T-code) the selected groups are documented as using, and colors each one by how many of the groups share it:
 
-| Color | Meaning |
-|---|---|
-| 🟥 **RED** | Used by **3 or more** selected groups (or **both**, if you only picked 2) |
-| 🟨 **YELLOW** | Used by **exactly 2** groups (only when you picked 3 or more) |
-| 🟩 **LIGHT GREEN** | Used by only **one** selected group |
+The color scale adapts to how many groups you pick. Light green always means one group. The more groups you pick, the more steps there are between "one group" and "all of them":
+
+| Groups picked | 🟩 LIGHT GREEN | 🟨 YELLOW | 🟧 ORANGE | 🟥 RED | ⬛ DARK RED |
+|---|---|---|---|---|---|
+| 1 | 1 | | | | |
+| 2 | 1 | | | 2 (both) | |
+| 3 | 1 | 2 | | 3 (all) | |
+| 4 | 1 | 2 | 3 | 4 (all) | |
+| 5 | 1 | 2 | 3 | 4 | 5 (all) |
+| 6 | 1 | 2–3 | 4 | 5 | 6 (all) |
+| 7 | 1 | 2–3 | 4–5 | 6 | 7 (all) |
+| 8 | 1 | 2–3 | 4–5 | 6–7 | 8 (all) |
+| 10 | 1 | 2–4 | 5–7 | 8–9 | 10 (all) |
+
+The numbers are how many of the selected groups use a technique. From 5 groups up, the counts between 1 and "all" are split into three near-equal bands (yellow, orange, red), and dark red is kept for techniques that **every** selected group uses. Each report, layer legend and console run prints the exact scale used.
 
 Only techniques that at least one selected group has used are shown. Everything else is left out, both in the reports and in the Navigator layer.
 
@@ -100,7 +110,7 @@ Hover over a technique to see which groups used it. The legend shows the color k
 
 * A group "uses" a technique if ATT&CK has a `uses` relationship from the group, or from a campaign attributed to it, to that technique or one of its sub-techniques.
 * **Parent T-codes**: any sub-technique use counts toward its parent. For example, T1059.001 counts as T1059.
-* **Sub-techniques** (in the parent-and-sub outputs) are scored on their own. A parent can be RED while some of its sub-techniques are YELLOW or GREEN.
+* **Sub-techniques** (in the parent-and-sub outputs) are scored on their own. A parent can be RED while some of its sub-techniques are a lower color.
 * Revoked and deprecated objects are ignored.
 * If only one group is selected, everything it uses is LIGHT GREEN.
 * Each run uses one matrix. The output folder and file names start with it (`Enterprise_`, `Mobile_` or `ICS_`), and the layer opens in the matching Navigator matrix.

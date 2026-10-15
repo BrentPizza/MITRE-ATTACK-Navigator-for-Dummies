@@ -2,11 +2,18 @@
 MITRE ATT&CK Navigator for Dummies
 ----------------------------------
 Pick a set of APT groups -> get the ATT&CK techniques (T-codes) they use,
-color-coded by how many of the selected groups overlap on each one:
+color-coded by how many of the selected groups overlap on each one. The color scale
+grows with the number of groups selected (see color_bands()):
 
-    RED          3+ selected groups have used the technique (or both, when only 2 are selected)
-    YELLOW       exactly 2 selected groups have used it (only when 3+ groups are selected)
-    LIGHT GREEN  only one selected group has used it
+    groups  LIGHT GREEN  YELLOW        ORANGE         RED              DARK RED
+    1       1            -             -              -                -
+    2       1            -             -              2                -
+    3       1            2             -              3                -
+    4       1            2             3              4                -
+    5+      1            the counts from 2 to (groups - 1) split     ALL selected
+                         into three near-equal runs
+            e.g. 6 groups:  green 1, yellow 2-3, orange 4, red 5, dark red 6
+                 10 groups: green 1, yellow 2-4, orange 5-7, red 8-9, dark red 10
 
 Outputs (per run, in ./output/<timestamp>_<groups>/), produced twice:
     1_Parent_Only/     parent T-codes only (sub-technique use rolled up into the parent)
@@ -60,15 +67,18 @@ DOMAIN_ALIASES = {"enterprise": "enterprise", "enterprise-attack": "enterprise",
 def parse_domain(text):
     return DOMAIN_ALIASES.get(text.strip().lower())
 
-# Overlap levels: key -> (label, hex color, text color on that fill)
-RED, YELLOW, GREEN = "high", "two", "single"
+# Overlap levels, strongest first: key -> (short name, hex color, text color on that fill)
+ALL, RED, ORANGE, YELLOW, GREEN = "all", "high", "medium", "low", "single"
 LEVELS = {
-    RED: ("3+ groups (or both of 2)", "#E5383B", "#FFFFFF"),
-    YELLOW: ("Exactly 2 groups", "#F4D35E", "#1A1A1A"),
-    GREEN: ("Single group", "#90EE90", "#1A1A1A"),
+    ALL: ("DARK RED", "#9D0208", "#FFFFFF"),
+    RED: ("RED", "#E5383B", "#FFFFFF"),
+    ORANGE: ("ORANGE", "#F48C06", "#1A1A1A"),
+    YELLOW: ("YELLOW", "#F4D35E", "#1A1A1A"),
+    GREEN: ("LIGHT GREEN", "#90EE90", "#1A1A1A"),
 }
-LEVEL_ORDER = [RED, YELLOW, GREEN]
-LEVEL_SHORT = {RED: "RED", YELLOW: "YELLOW", GREEN: "LIGHT GREEN"}
+LEVEL_SHORT = {k: v[0] for k, v in LEVELS.items()}
+LEVEL_ORDER = []   # levels in use for this run, strongest first; filled by set_bands()
+BANDS = []         # (level, min groups, max groups) for this run; filled by set_bands()
 
 
 # --------------------------------------------------------------------------- data
@@ -213,17 +223,53 @@ class Attack:
 
 # --------------------------------------------------------------------------- analysis
 
+def color_bands(n):
+    """Color scale for n selected groups: [(level, min groups, max groups)], strongest first.
+
+    1 group is always LIGHT GREEN. Up to 4 groups every count gets its own color (green, yellow,
+    orange, red). From 5 groups on, the counts from 2 to n-1 are split into three near-equal runs
+    (yellow, orange, red) and DARK RED is kept for techniques used by every selected group.
+    """
+    if n <= 1:
+        return [(GREEN, 1, 1)]
+    if n <= 4:
+        ladder = {2: [GREEN, RED], 3: [GREEN, YELLOW, RED], 4: [GREEN, YELLOW, ORANGE, RED]}[n]
+        return [(lv, c, c) for c, lv in reversed(list(enumerate(ladder, 1)))]
+    # Split the counts between "one group" and "all groups" (2 .. n-1) into three near-equal runs.
+    mid = n - 2
+    sizes = [mid // 3 + (1 if i < mid % 3 else 0) for i in range(3)]   # yellow, orange, red
+    y_hi = 1 + sizes[0]
+    o_hi = y_hi + sizes[1]
+    bands = [(ALL, n, n), (RED, o_hi + 1, n - 1), (ORANGE, y_hi + 1, o_hi), (YELLOW, 2, y_hi), (GREEN, 1, 1)]
+    return [b for b in bands if b[1] <= b[2]]
+
+
+def set_bands(n):
+    BANDS[:] = color_bands(n)
+    LEVEL_ORDER[:] = [lv for lv, _, _ in BANDS]
+
+
 def overlap_level(count, n):
-    # RED = 3+ groups, or 2 when only 2 groups are selected; YELLOW = exactly 2 (of 3+); GREEN = 1
-    if count >= 3 or (count == 2 and n == 2):
-        return RED
-    return YELLOW if count == 2 else GREEN
+    for lv, lo, hi in BANDS:
+        if lo <= count <= hi:
+            return lv
+    raise ValueError(f"no color band for {count}/{n}")
+
+
+def band_text(lo, hi, n):
+    if n == 1:
+        return "Used by the selected group"
+    if lo == hi == 1:
+        return "Used by only ONE group"
+    if lo == hi == n:
+        return "Used by BOTH groups" if n == 2 else f"Used by ALL {n} groups"
+    if lo == hi:
+        return f"Used by exactly {lo} of {n} groups"
+    return f"Used by {lo} to {hi} of {n} groups"
 
 
 def level_meanings(n):
-    return {RED: "Used by BOTH selected groups" if n == 2 else "Used by 3 or more selected groups",
-            YELLOW: "Used by exactly 2 selected groups" if n > 2 else "(not used when only 2 groups are selected)",
-            GREEN: "Used by only ONE selected group"}
+    return {lv: band_text(lo, hi, n) for lv, lo, hi in BANDS}
 
 
 def tid_key(tid):
@@ -233,6 +279,7 @@ def tid_key(tid):
 
 def analyze(attack, groups, campaigns=True, software=False):
     """Rows = used parent T-codes; each row carries "sub_rows" = used sub-techniques with their own overlap level."""
+    set_bands(len(groups))
     per_group = {g["id"]: attack.group_techniques(g, campaigns, software) for g in groups}
     n = len(groups)
     rows = []
@@ -309,7 +356,7 @@ def write_layer(path, attack, groups, rows, title, opts):
         "domain": attack.domain_name,
         "description": (f"{'Technique and sub-technique' if opts['subs'] else 'Parent technique'} overlap for: "
                         f"{', '.join(g['name'] + ' (' + g['id'] + ')' for g in groups)}. "
-                        + ("RED = both groups, LIGHT GREEN = 1 group. " if n == 2 else "RED = 3+ groups, YELLOW = 2 groups, LIGHT GREEN = 1 group. ")
+                        + "; ".join(f"{LEVEL_SHORT[k]} = {m.replace('Used by ', '')}" for k, m in level_meanings(n).items()) + ". "
                         + ("Parents are colored by rolled-up use; sub-techniques by their own use. " if opts["subs"]
                            else "Sub-technique use is rolled up into the parent T-code. ") +
                         f"Campaigns {'included' if opts['campaigns'] else 'excluded'}; "
@@ -322,8 +369,9 @@ def write_layer(path, attack, groups, rows, title, opts):
                    "expandedSubtechniques": "annotated" if opts["subs"] else "none"},
         "hideDisabled": True,
         "techniques": techniques,
-        "gradient": {"colors": ["#90EE90", "#F4D35E", "#E5383B"], "minValue": 1, "maxValue": max(n, 2)},
-        "legendItems": [{"label": f"{LEVEL_SHORT[k]} - {LEVELS[k][0]}", "color": LEVELS[k][1]} for k in LEVEL_ORDER],
+        "gradient": {"colors": [LEVELS[k][1] for k in reversed(LEVEL_ORDER)] if len(LEVEL_ORDER) > 1
+                     else [LEVELS[GREEN][1]] * 2, "minValue": 1, "maxValue": max(n, 2)},
+        "legendItems": [{"label": f"{LEVEL_SHORT[k]} - {m}", "color": LEVELS[k][1]} for k, m in level_meanings(n).items()],
         "showTacticRowBackground": True,
         "tacticRowBackground": "#1F2633",
         "selectTechniquesAcrossTactics": True,
@@ -392,7 +440,7 @@ def write_excel(path, attack, groups, rows, per_group_counts, title, opts):
             ws.cell(row=i, column=4, value=counts[k][1])
         for c in range(1, legend_cols + 1):
             ws.cell(row=i, column=c).border = BORDER
-    tot = r0 + 5
+    tot = r0 + 2 + len(LEVEL_ORDER)
     ws.cell(row=tot, column=2, value="Total unique T-codes").font = Font(bold=True)
     ws.cell(row=tot, column=3, value=len(rows)).font = Font(bold=True)
     if opts["subs"]:
@@ -400,10 +448,10 @@ def write_excel(path, attack, groups, rows, per_group_counts, title, opts):
 
     t0 = tot + 2
     ws.cell(row=t0, column=1, value="By Tactic").font = Font(bold=True, size=12)
-    for c, h in enumerate(["Tactic", "RED", "YELLOW", "LIGHT GREEN", "Total"], 1):
+    for c, h in enumerate(["Tactic"] + [LEVEL_SHORT[k] for k in LEVEL_ORDER] + ["Total"], 1):
         cell = ws.cell(row=t0 + 1, column=c, value=h)
         cell.fill, cell.font, cell.border = HDR, HFONT, BORDER
-    for k, col in zip(LEVEL_ORDER, (2, 3, 4)):
+    for k, col in zip(LEVEL_ORDER, range(2, 2 + len(LEVEL_ORDER))):
         ws.cell(row=t0 + 1, column=col).fill = fill(LEVELS[k][1])
         ws.cell(row=t0 + 1, column=col).font = Font(bold=True, color=LEVELS[k][2].lstrip("#"))
     for i, (tac, tname) in enumerate(attack.tactics, t0 + 2):
@@ -411,7 +459,7 @@ def write_excel(path, attack, groups, rows, per_group_counts, title, opts):
         vals = [tname] + [sum(1 for r in in_tac if r["level"] == k) for k in LEVEL_ORDER] + [len(in_tac)]
         for c, v in enumerate(vals, 1):
             ws.cell(row=i, column=c, value=v).border = BORDER
-    for col, w in zip("ABCDE", (24, 40, 60, 20, 50)):
+    for col, w in zip("ABCDEFG", (24, 40, 60, 20, 50, 14, 14)):
         ws.column_dimensions[col].width = w
 
     # ---- Technique Overlap (parents, with their sub-techniques nested underneath as collapsible rows)
@@ -563,8 +611,10 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
         def draw(self):
             c = self.canv
             gap = 14
-            bw = (self.width - gap * 2) / 3
+            nb = len(LEVEL_ORDER)
+            bw = (self.width - gap * (nb - 1)) / max(nb, 3)
             meaning = level_meanings(n)
+            small = nb > 3
             for i, k in enumerate(LEVEL_ORDER):
                 x = i * (bw + gap)
                 c.setFillColor(PANEL)
@@ -573,20 +623,22 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
                 c.setFillColor(colors.HexColor(LEVELS[k][1]))
                 c.roundRect(x, 0, 10, self.height, 4, stroke=0, fill=1)
                 c.rect(x + 5, 0, 5, self.height, stroke=0, fill=1)
-                c.setFillColor(colors.HexColor(LEVELS[k][1]))
-                c.setFont("Helvetica-Bold", 30)
+                c.setFillColor(TXT if k == ALL else colors.HexColor(LEVELS[k][1]))  # dark red is unreadable on the dark panel
+                big = 26 if small else 30
+                c.setFont("Helvetica-Bold", big)
                 num = str(counts[k][0])
-                c.drawString(x + 26, self.height - 42, num)
-                tx = x + 26 + c.stringWidth(num, "Helvetica-Bold", 30) + 12
+                c.drawString(x + 22, self.height - 42, num)
+                tx = x + 22 + c.stringWidth(num, "Helvetica-Bold", big) + 10
                 c.setFillColor(TXT)
-                c.setFont("Helvetica-Bold", 12)
+                c.setFont("Helvetica-Bold", 11 if small else 12)
                 c.drawString(tx, self.height - 30, LEVEL_SHORT[k])
                 c.setFillColor(MUTED)
-                c.setFont("Helvetica", 9.5)
-                c.drawString(tx, self.height - 44, f"techniques  +  {counts[k][1]} sub-techniques" if opts["subs"] else "techniques")
+                c.setFont("Helvetica", 8.5 if small else 9.5)
+                c.drawString(tx, self.height - 44, (f"tech  +  {counts[k][1]} sub" if small else
+                                                    f"techniques  +  {counts[k][1]} sub-techniques") if opts["subs"] else "techniques")
                 c.setFillColor(TXT)
-                c.setFont("Helvetica", 10)
-                c.drawString(x + 26, 16, meaning[k])
+                c.setFont("Helvetica", 9.5 if small else 10)
+                c.drawString(x + 22, 16, meaning[k])
 
     story += [Legend(W - 2 * M), Spacer(1, 16)]
 
@@ -607,8 +659,8 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
         in_tac = [r for r in rows if tac in r["tactics"]]
         tdata.append([Paragraph(tname, CELL)] + [Paragraph(str(sum(1 for r in in_tac if r["level"] == k)), CELL) for k in LEVEL_ORDER]
                      + [Paragraph(str(len(in_tac)), CELLB)])
-    cw = (right_w - 1.9 * inch) / 4
-    ttable = dark_table(tdata, [1.9 * inch, cw, cw, cw, cw],
+    cw = (right_w - 1.9 * inch) / (len(LEVEL_ORDER) + 1)
+    ttable = dark_table(tdata, [1.9 * inch] + [cw] * (len(LEVEL_ORDER) + 1),
                         extra=[("BACKGROUND", (1 + i, 0), (1 + i, 0), colors.HexColor(LEVELS[k][1])) for i, k in enumerate(LEVEL_ORDER)])
 
     side = Table([[[Paragraph("Selected Groups", H2), gtable], "", [Paragraph("Coverage by Tactic", H2), ttable]]],
@@ -958,8 +1010,9 @@ def main():
 
     counts = level_counts(rows)
     n_subs = sum(len(r["sub_rows"]) for r in rows)
-    print(f"\n{len(rows)} parent T-codes:  RED {counts[RED][0]}  |  YELLOW {counts[YELLOW][0]}  |  LIGHT GREEN {counts[GREEN][0]}")
-    print(f"{n_subs} sub-techniques:  RED {counts[RED][1]}  |  YELLOW {counts[YELLOW][1]}  |  LIGHT GREEN {counts[GREEN][1]}")
+    print("\nColor scale:  " + "  |  ".join(f"{LEVEL_SHORT[k]} = {m.replace('Used by ', '')}" for k, m in level_meanings(len(groups)).items()))
+    print(f"{len(rows)} parent T-codes:  " + "  |  ".join(f"{LEVEL_SHORT[k]} {counts[k][0]}" for k in LEVEL_ORDER))
+    print(f"{n_subs} sub-techniques:  " + "  |  ".join(f"{LEVEL_SHORT[k]} {counts[k][1]}" for k in LEVEL_ORDER))
 
     # Each run produces two sets: parent T-codes only, and parents with their sub-techniques.
     variants = {"parents": ("1_Parent_Only", "parent-only", " (Parent T-codes)",
