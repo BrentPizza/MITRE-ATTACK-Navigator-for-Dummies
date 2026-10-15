@@ -843,83 +843,92 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
     doc.build(story)
 
 
-def write_legend(path, attack, groups, label):
-    """Briefing-slide legend: gray panel, LEGEND title bar, Overlap | Meaning table, groups + source footer."""
-    import reportlab
+_LEGEND_FONT = None
+
+
+def legend_font_source():
+    """Franklin Gothic (bold weight) from the system fonts, else the bundled Libre Franklin (same design, OFL).
+
+    Returns (path, variation name or None, display name).
+    """
+    global _LEGEND_FONT
+    if _LEGEND_FONT:
+        return _LEGEND_FONT
+    from PIL import ImageFont
+    dirs = [Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Windows" / "Fonts",
+            Path("/Library/Fonts"), Path.home() / "Library" / "Fonts", Path("/usr/share/fonts"), Path.home() / ".fonts"]
+    rank = ["bold", "demi", "heavy", "medium"]   # closest to "Franklin Gothic Bold" first
+    best = None
+    for d in dirs:
+        if not d.is_dir():
+            continue
+        for f in d.rglob("*"):
+            if f.suffix.lower() not in (".ttf", ".otf") or "fra" not in f.name.lower():
+                continue
+            try:
+                fam, style = ImageFont.truetype(str(f), 10).getname()
+            except OSError:
+                continue
+            full = f"{fam} {style}".lower()
+            if "franklin gothic" not in full or "italic" in full or "oblique" in full or "cond" in full:
+                continue
+            r = next((i for i, w in enumerate(rank) if w in full), None)
+            if r is not None and (best is None or r < best[0]):
+                best = (r, str(f), None, f"{fam} {style}".replace(" Regular", ""))
+    _LEGEND_FONT = best[1:] if best else (str(HERE / "fonts" / "LibreFranklin-VariableFont.ttf"), "Bold",
+                                          "Libre Franklin Bold (Franklin Gothic not installed)")
+    return _LEGEND_FONT
+
+
+def legend_label(lo, hi, n):
+    if lo == hi == n and n > 1:
+        return "Both groups" if n == 2 else f"All {n} groups"
+    if lo == hi:
+        return "1 group" if lo == 1 else f"{lo} of {n} groups"
+    return f"{lo}\u2013{hi} of {n} groups"
+
+
+def write_legend(path, groups, theme):
+    """Slide legend sized to sit on a clip of the light or dark ATT&CK Navigator.
+
+    One table: a merged LEGEND header, then a color-only cell and its label per overlap level.
+    """
     from PIL import Image, ImageDraw, ImageFont
-    fdir = Path(reportlab.__file__).parent / "fonts"   # Vera ships with reportlab, so this works on any machine
-    font = lambda size, bold=False: ImageFont.truetype(str(fdir / ("VeraBd.ttf" if bold else "Vera.ttf")), size)
-    f_title, f_head, f_cell, f_cellb, f_foot = font(52, True), font(36, True), font(38), font(38, True), font(28)
-    BG, BAR, LINE, CELL, TXT, MUTED = "#D9D9D9", "#BFBFBF", "#7F7F7F", "#F2F2F2", "#000000", "#404040"
+    src, var, _ = legend_font_source()
+
+    def font(size):
+        f = ImageFont.truetype(src, size)
+        if var:
+            f.set_variation_by_name(var)
+        return f
+
+    f_head, f_cell = font(68), font(54)
+    if theme == "dark":   # for the dark Navigator: dark gray cells, light text and a light outline so it stands off the page
+        HEAD, CELL, TXT, LINE, EDGE = "#3F3F3F", "#2B2B2B", "#FFFFFF", "#7F7F7F", "#BFBFBF"
+    else:                 # for the light Navigator: light gray cells, black text, dark outline against the white page
+        HEAD, CELL, TXT, LINE, EDGE = "#BFBFBF", "#D9D9D9", "#000000", "#7F7F7F", "#404040"
 
     n = len(groups)
-    rows = []
-    for lv, lo, hi in BANDS:
-        count = f"{lo} of {n}" if lo == hi else f"{lo}-{hi} of {n}"
-        if lo == hi == n and n > 1:
-            meaning = "Used by both groups" if n == 2 else f"Used by all {n} groups"
-        elif lo == hi == 1:
-            meaning = "Used by 1 group only"
-        elif lo == hi:
-            meaning = f"Used by {lo} of {n} groups"
-        else:
-            meaning = f"Used by {lo} to {hi} of {n} groups"
-        rows.append((lv, count, meaning))
-    caption = f"Shared ATT&CK techniques across {n} selected APT group{'s' if n != 1 else ''}"
-    foot = [f"Groups: {', '.join(g['name'] for g in groups)}",
-            f"Source: MITRE ATT&CK\u00ae {label}, data as of {attack.data_modified}"]
+    rows = [(lv, legend_label(lo, hi, n)) for lv, lo, hi in BANDS]
+    sw_w, row_h, head_h, tpad, edge = 170, 112, 124, 44, 6
+    lab_w = int(max(f_cell.getlength(t) for _, t in rows)) + 2 * tpad
+    width = max(sw_w + lab_w, int(f_head.getlength("LEGEND")) + 2 * tpad) + 2 * edge
+    height = head_h + row_h * len(rows) + 2 * edge
+    x0, x1, x2 = edge, edge + sw_w, width - edge
 
-    pad, row_h, head_h, bar_h = 48, 96, 76, 104
-    c1 = int(max(max(f_cellb.getlength(c) for _, c, _ in rows), f_head.getlength("Overlap"))) + 80
-    c2 = int(max(max(f_cell.getlength(m) for _, _, m in rows), f_head.getlength("Meaning"))) + 80
-    table_w = c1 + c2
-
-    def wrap(text, fnt, maxw):   # word-wrap footer lines to the table width
-        out, cur = [], ""
-        for w in text.split(" "):
-            if cur and fnt.getlength(cur + " " + w) > maxw:
-                out.append(cur)
-                cur = w
-            else:
-                cur = (cur + " " + w).strip()
-        return out + [cur]
-
-    table_w = max(table_w, int(f_cell.getlength(caption)))
-    c2 = table_w - c1
-    foot_lines = [l for t in foot for l in wrap(t, f_foot, table_w)]
-    width = table_w + 2 * pad
-    height = bar_h + pad + 58 + 24 + head_h + row_h * len(rows) + 28 + 40 * len(foot_lines) + pad
-
-    img = Image.new("RGB", (width, height), BG)
+    img = Image.new("RGB", (width, height), EDGE)
     d = ImageDraw.Draw(img)
-    d.rectangle([0, 0, width - 1, bar_h], fill=BAR)
-    d.text((pad, bar_h / 2), "LEGEND", font=f_title, fill=TXT, anchor="lm")
-    d.line([0, bar_h, width, bar_h], fill=LINE, width=3)
-    y = bar_h + pad
-    d.text((pad, y), caption, font=f_cell, fill=TXT)
-    y += 58 + 24
-
-    x0, x1, x2 = pad, pad + c1, pad + table_w
-    d.rectangle([x0, y, x2, y + head_h], fill=BAR)
-    d.text((x0 + c1 / 2, y + head_h / 2), "Overlap", font=f_head, fill=TXT, anchor="mm")
-    d.text((x1 + 32, y + head_h / 2), "Meaning", font=f_head, fill=TXT, anchor="lm")
-    top = y
-    y += head_h
-    for lv, count, meaning in rows:
-        d.rectangle([x0, y, x1, y + row_h], fill=LEVELS[lv][1])
-        d.rectangle([x1, y, x2, y + row_h], fill=CELL)
-        d.text((x0 + c1 / 2, y + row_h / 2), count, font=f_cellb, fill=LEVELS[lv][2], anchor="mm")
-        d.text((x1 + 32, y + row_h / 2), meaning, font=f_cell, fill=TXT, anchor="lm")
-        d.line([x0, y, x2, y], fill=LINE, width=2)
+    d.rectangle([x0, edge, x2 - 1, edge + head_h], fill=HEAD)
+    d.text((width / 2, edge + head_h / 2), "LEGEND", font=f_head, fill=TXT, anchor="mm")
+    y = edge + head_h
+    for lv, text in rows:
+        d.line([x0, y, x2, y], fill=LINE, width=3)
+        d.rectangle([x0, y + 2, x1 - 2, y + row_h], fill=LEVELS[lv][1])
+        d.rectangle([x1 + 2, y + 2, x2 - 1, y + row_h], fill=CELL)
+        d.text((x1 + tpad, y + row_h / 2 + 1), text, font=f_cell, fill=TXT, anchor="lm")
         y += row_h
-    d.rectangle([x0, top, x2, y], outline=LINE, width=3)
-    d.line([x1, top, x1, y], fill=LINE, width=2)
-
-    y += 28
-    for l in foot_lines:
-        d.text((pad, y), l, font=f_foot, fill=MUTED)
-        y += 40
-    d.rectangle([0, 0, width - 1, height - 1], outline=LINE, width=3)
+    d.line([x1, edge + head_h, x1, height - edge], fill=LINE, width=3)
     img.save(path, dpi=(300, 300))
 
 
@@ -1100,8 +1109,9 @@ def main():
                 "subs": ("2_Parent_and_Sub", "parent-and-sub", " (Parent + Sub-techniques)", rows)}
     chosen = list(variants) if args.mode == "both" else [args.mode]
     out.mkdir(parents=True, exist_ok=True)
-    legend_p = out / f"{base}_legend.png"
-    write_legend(legend_p, attack, groups, label)
+    legends = [out / f"{base}_legend_for-{theme}-navigator.png" for theme in ("light", "dark")]
+    for lp, theme in zip(legends, ("light", "dark")):
+        write_legend(lp, groups, theme)
     for key in chosen:
         folder, suffix, title_suffix, vrows = variants[key]
         vout = out / folder
@@ -1118,7 +1128,9 @@ def main():
         print(f"  Navigator layer : {layer_p}")
         print(f"  Excel workbook  : {xlsx_p}")
         print(f"  PDF report      : {pdf_p}")
-    print(f"\n[Legend for slides]\n  PNG             : {legend_p}")
+    print(f"\n[Slide legend]  font: {legend_font_source()[2]}")
+    for lp in legends:
+        print(f"  PNG             : {lp}")
     print("\nTip: open https://mitre-attack.github.io/attack-navigator/ -> Open Existing Layer -> Upload from local -> pick the _layer.json")
 
     if is_interactive and sys.platform == "win32":
