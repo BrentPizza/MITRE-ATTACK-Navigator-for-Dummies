@@ -18,7 +18,7 @@ The color scale adapts to how many groups you pick. Light green always means one
 | 8 | 1 | 2–3 | 4–5 | 6–7 | 8 (all) |
 | 10 | 1 | 2–4 | 5–7 | 8–9 | 10 (all) |
 
-The numbers are how many of the selected groups use a technique. From 5 groups up, the counts between 1 and "all" are split into three near-equal bands (yellow, orange, red), and dark red is kept for techniques that **every** selected group uses. Each report, layer legend and console run prints the exact scale used.
+The numbers are how many of the selected groups use a technique. From 5 groups up, the counts between 1 and "all" are split into three near-equal bands (yellow, orange, red), and dark red is kept for techniques that **every** selected group uses. Each report, layer legend and console run prints the exact scale used. The full lookup table (1–20 groups), color hex codes and a worked example are in **[docs/COLOR_RULES.md](docs/COLOR_RULES.md)**.
 
 Only techniques that at least one selected group has used are shown. Everything else is left out, both in the reports and in the Navigator layer.
 
