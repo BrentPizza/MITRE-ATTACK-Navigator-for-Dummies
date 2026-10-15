@@ -1,0 +1,931 @@
+"""
+MITRE ATT&CK Navigator for Dummies
+----------------------------------
+Pick a set of APT groups -> get the ATT&CK techniques (T-codes) they use,
+color-coded by how many of the selected groups overlap on each one:
+
+    RED          every selected group has used the technique
+    YELLOW       more than one (but not all) selected groups have used it
+    LIGHT GREEN  only one selected group has used it
+
+Outputs (per run, in ./output/<timestamp>_<groups>/), produced twice:
+    1_Parent_Only/     parent T-codes only (sub-technique use rolled up into the parent)
+    2_Parent_and_Sub/  parent T-codes plus the sub-techniques used, each with its own color
+each containing:
+    *_layer.json   -> import into MITRE ATT&CK Navigator ("Open Existing Layer")
+    *.xlsx         -> Excel workbook (summary, overlap table, tactic matrix)
+    *.pdf          -> dark-themed PDF report with the matrix view
+
+Usage:
+    python attack_overlap.py                         (interactive, dummy-proof mode)
+    python attack_overlap.py APT28 APT29 "Lazarus Group"
+    python attack_overlap.py G0007 G0016 --no-campaigns
+    python attack_overlap.py --list                  (list every group)
+    python attack_overlap.py --search panda          (search names/aliases)
+    python attack_overlap.py --update APT28 APT29    (re-download latest ATT&CK data)
+    python attack_overlap.py APT28 APT29 --mode parents   (only the parent-only set)
+"""
+
+import argparse
+import datetime as dt
+import difflib
+import json
+import os
+import re
+import sys
+import urllib.request
+from collections import defaultdict
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+DATA_DIR = HERE / "data"
+OUT_DIR = HERE / "output"
+
+DOMAINS = {
+    "enterprise": ("enterprise-attack", "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"),
+    "mobile": ("mobile-attack", "https://raw.githubusercontent.com/mitre/cti/master/mobile-attack/mobile-attack.json"),
+    "ics": ("ics-attack", "https://raw.githubusercontent.com/mitre/cti/master/ics-attack/ics-attack.json"),
+}
+
+# Overlap levels: key -> (label, hex color, text color on that fill)
+RED, YELLOW, GREEN = "all", "multiple", "single"
+LEVELS = {
+    RED: ("All selected groups", "#E5383B", "#FFFFFF"),
+    YELLOW: ("Multiple groups", "#F4D35E", "#1A1A1A"),
+    GREEN: ("Single group", "#90EE90", "#1A1A1A"),
+}
+LEVEL_ORDER = [RED, YELLOW, GREEN]
+LEVEL_SHORT = {RED: "RED", YELLOW: "YELLOW", GREEN: "LIGHT GREEN"}
+
+
+# --------------------------------------------------------------------------- data
+
+def load_bundle(domain="enterprise", update=False):
+    name, url = DOMAINS[domain]
+    DATA_DIR.mkdir(exist_ok=True)
+    path = DATA_DIR / f"{name}.json"
+    if update or not path.exists():
+        print(f"Downloading latest MITRE ATT&CK {domain} data (~50 MB)...")
+        tmp = path.with_suffix(".tmp")
+        urllib.request.urlretrieve(url, tmp)
+        tmp.replace(path)
+    with open(path, encoding="utf-8") as f:
+        return json.load(f), name, path
+
+
+def ext_id(obj):
+    for ref in obj.get("external_references", []):
+        if ref.get("source_name") in ("mitre-attack", "mitre-mobile-attack", "mitre-ics-attack") and ref.get("external_id"):
+            return ref["external_id"], ref.get("url", "")
+    return None, ""
+
+
+def live(obj):
+    return not obj.get("revoked") and not obj.get("x_mitre_deprecated")
+
+
+class Attack:
+    def __init__(self, bundle, domain_name):
+        self.domain_name = domain_name
+        objs = [o for o in bundle["objects"] if live(o)]
+        by_id = {o["id"]: o for o in objs}
+
+        matrix = next(o for o in objs if o["type"] == "x-mitre-matrix")
+        self.data_modified = matrix.get("modified", "")[:10]
+        tactics = {o["id"]: o for o in objs if o["type"] == "x-mitre-tactic"}
+        self.tactics = [(tactics[r]["x_mitre_shortname"], tactics[r]["name"]) for r in matrix["tactic_refs"] if r in tactics]
+        self.tactic_name = dict(self.tactics)
+
+        # techniques
+        self.tech = {}        # stix id -> dict
+        self.parents = {}     # T-code -> dict (parent techniques only)
+        for o in objs:
+            if o["type"] != "attack-pattern":
+                continue
+            tid, url = ext_id(o)
+            if not tid:
+                continue
+            t = {
+                "id": tid,
+                "name": o["name"],
+                "url": url,
+                "tactics": [p["phase_name"] for p in o.get("kill_chain_phases", []) if p.get("kill_chain_name", "").startswith("mitre")],
+                "is_sub": bool(o.get("x_mitre_is_subtechnique")) or "." in tid,
+                "platforms": o.get("x_mitre_platforms", []),
+            }
+            self.tech[o["id"]] = t
+            if not t["is_sub"]:
+                self.parents[tid] = t
+        self.by_tid = {t["id"]: t for t in self.tech.values()}
+        self.sub_ids = sorted(t["id"] for t in self.tech.values() if t["is_sub"])
+        self.platforms = sorted({p for t in self.parents.values() for p in t["platforms"]})
+
+        # groups
+        self.groups = {}      # stix id -> dict
+        for o in objs:
+            if o["type"] != "intrusion-set":
+                continue
+            gid, url = ext_id(o)
+            if gid:
+                self.groups[o["id"]] = {"stix": o["id"], "id": gid, "name": o["name"], "url": url,
+                                        "aliases": [a for a in o.get("aliases", []) if a != o["name"]]}
+
+        # relationships
+        self.uses = defaultdict(set)          # source stix -> set(target stix)
+        self.campaigns_of = defaultdict(set)  # group stix -> set(campaign stix)
+        for o in objs:
+            if o["type"] != "relationship" or o["source_ref"] not in by_id or o["target_ref"] not in by_id:
+                continue
+            if o["relationship_type"] == "uses":
+                self.uses[o["source_ref"]].add(o["target_ref"])
+            elif o["relationship_type"] == "attributed-to" and o["target_ref"] in self.groups:
+                self.campaigns_of[o["target_ref"]].add(o["source_ref"])
+        self.software = {o["id"] for o in objs if o["type"] in ("malware", "tool")}
+
+    # -- lookup
+    def find_group(self, query):
+        """Return (group, None) or (None, [suggestions])."""
+        q = query.strip().lower()
+        exact = [g for g in self.groups.values()
+                 if q == g["id"].lower() or q == g["name"].lower() or q in (a.lower() for a in g["aliases"])]
+        if len(exact) == 1:
+            return exact[0], None
+        if len(exact) > 1:
+            return None, exact
+        partial = [g for g in self.groups.values()
+                   if q in g["name"].lower() or any(q in a.lower() for a in g["aliases"])]
+        if len(partial) == 1:
+            return partial[0], None
+        if partial:
+            return None, partial
+        names = {g["name"].lower(): g for g in self.groups.values()}
+        for g in self.groups.values():
+            for a in g["aliases"]:
+                names.setdefault(a.lower(), g)
+        close = difflib.get_close_matches(q, names.keys(), n=6, cutoff=0.6)
+        return None, list({names[c]["id"]: names[c] for c in close}.values())
+
+    def search(self, text):
+        q = text.lower()
+        return [g for g in sorted(self.groups.values(), key=lambda g: g["name"].lower())
+                if q in g["name"].lower() or q in g["id"].lower() or any(q in a.lower() for a in g["aliases"])]
+
+    # -- technique usage for one group, rolled up to parents
+    def group_techniques(self, group, campaigns=True, software=False):
+        """Return {parent T-code: set(sub-technique IDs observed)}."""
+        sources = {group["stix"]}
+        if campaigns:
+            sources |= self.campaigns_of[group["stix"]]
+        targets = set()
+        for s in list(sources):
+            targets |= self.uses[s]
+            if software:
+                for sw in self.uses[s] & self.software:
+                    targets |= self.uses[sw]
+        out = defaultdict(set)
+        for t in targets:
+            tech = self.tech.get(t)
+            if not tech:
+                continue
+            parent = tech["id"].split(".")[0]
+            if parent not in self.parents:
+                continue
+            out[parent]  # make sure parent key exists even with no subs
+            if tech["is_sub"]:
+                out[parent].add(tech["id"])
+        return out
+
+
+# --------------------------------------------------------------------------- analysis
+
+def overlap_level(count, n):
+    if n > 1 and count == n:
+        return RED
+    return YELLOW if count > 1 else GREEN
+
+
+def tid_key(tid):
+    p, _, s = tid[1:].partition(".")
+    return int(p), int(s or 0)
+
+
+def analyze(attack, groups, campaigns=True, software=False):
+    """Rows = used parent T-codes; each row carries "sub_rows" = used sub-techniques with their own overlap level."""
+    per_group = {g["id"]: attack.group_techniques(g, campaigns, software) for g in groups}
+    n = len(groups)
+    rows = []
+    all_tids = sorted({t for usage in per_group.values() for t in usage}, key=tid_key)
+    for tid in all_tids:
+        users = [g for g in groups if tid in per_group[g["id"]]]
+        subs = sorted(set().union(*(per_group[g["id"]][tid] for g in users)), key=tid_key)
+        sub_rows = []
+        for sid in subs:
+            s_users = [g["id"] for g in users if sid in per_group[g["id"]][tid]]
+            st = attack.by_tid[sid]
+            sub_rows.append({"id": sid, "name": st["name"], "url": st["url"], "count": len(s_users),
+                             "level": overlap_level(len(s_users), n), "groups": s_users})
+        sub_rows.sort(key=lambda s: (-s["count"], tid_key(s["id"])))
+        t = attack.parents[tid]
+        rows.append({
+            "id": tid, "name": t["name"], "url": t["url"],
+            "tactics": [tac for tac, _ in attack.tactics if tac in t["tactics"]],
+            "count": len(users), "level": overlap_level(len(users), n),
+            "groups": [g["id"] for g in users],
+            "subs": subs,
+            "sub_rows": sub_rows,
+        })
+    rows.sort(key=lambda r: (-r["count"], tid_key(r["id"])))
+    per_group_counts = {gid: len(u) for gid, u in per_group.items()}
+    return rows, per_group_counts
+
+
+def level_counts(rows):
+    """{level: (parent count, sub-technique count)}"""
+    return {k: (sum(1 for r in rows if r["level"] == k),
+                sum(1 for r in rows for s in r["sub_rows"] if s["level"] == k)) for k in LEVEL_ORDER}
+
+
+# --------------------------------------------------------------------------- outputs
+
+def safe_name(s):
+    return re.sub(r"[^A-Za-z0-9_-]+", "-", s).strip("-")
+
+
+def write_layer(path, attack, groups, rows, title, opts):
+    n = len(groups)
+    gname = {g["id"]: g["name"] for g in groups}
+    used = {r["id"] for r in rows}
+    used_subs = {s["id"] for r in rows for s in r["sub_rows"]}
+
+    def entry(t, **extra):
+        return {
+            "techniqueID": t["id"],
+            "score": t["count"],
+            "color": LEVELS[t["level"]][1],
+            "comment": f"{LEVEL_SHORT[t['level']]}: used by {t['count']}/{n} - " + ", ".join(gname[g] for g in t["groups"]),
+            "enabled": True,
+            "metadata": [{"name": "Groups", "value": ", ".join(gname[g] for g in t["groups"])}],
+            **extra,
+        }
+
+    techniques = []
+    for r in rows:
+        techniques.append(entry(r, showSubtechniques=bool(r["sub_rows"])))
+        techniques += [entry(s, showSubtechniques=False) for s in r["sub_rows"]]
+    # Disable every unused parent AND unused sub-technique so "hide disabled" shows only what the groups use.
+    # (Navigator keeps a parent visible while any of its sub-techniques is still enabled.)
+    for tid in sorted(attack.parents, key=tid_key):
+        if tid not in used:
+            techniques.append({"techniqueID": tid, "enabled": False, "showSubtechniques": False})
+    for sid in attack.sub_ids:
+        if sid not in used_subs:
+            techniques.append({"techniqueID": sid, "enabled": False, "showSubtechniques": False})
+
+    layer = {
+        "name": title[:100],
+        "versions": {"layer": "4.5", "navigator": "5.1.0"},
+        "domain": attack.domain_name,
+        "description": (f"{'Technique and sub-technique' if opts['subs'] else 'Parent technique'} overlap for: "
+                        f"{', '.join(g['name'] + ' (' + g['id'] + ')' for g in groups)}. "
+                        f"RED = all {n} groups, YELLOW = 2+ groups, LIGHT GREEN = 1 group. "
+                        + ("Parents are colored by rolled-up use; sub-techniques by their own use. " if opts["subs"]
+                           else "Sub-technique use is rolled up into the parent T-code. ") +
+                        f"Campaigns {'included' if opts['campaigns'] else 'excluded'}; "
+                        f"software-derived techniques {'included' if opts['software'] else 'excluded'}. "
+                        f"ATT&CK data modified {attack.data_modified}."),
+        "filters": {"platforms": attack.platforms},
+        "sorting": 3,
+        "layout": {"layout": "side", "aggregateFunction": "average", "showID": True, "showName": True,
+                   "showAggregateScores": False, "countUnscored": False,
+                   "expandedSubtechniques": "annotated" if opts["subs"] else "none"},
+        "hideDisabled": True,
+        "techniques": techniques,
+        "gradient": {"colors": ["#90EE90", "#F4D35E", "#E5383B"], "minValue": 1, "maxValue": max(n, 2)},
+        "legendItems": [{"label": f"{LEVEL_SHORT[k]} - {LEVELS[k][0]}", "color": LEVELS[k][1]} for k in LEVEL_ORDER],
+        "showTacticRowBackground": True,
+        "tacticRowBackground": "#1F2633",
+        "selectTechniquesAcrossTactics": True,
+        "selectSubtechniquesWithParent": False,
+        "selectVisibleTechniques": False,
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(layer, f, indent=2)
+
+
+def write_excel(path, attack, groups, rows, per_group_counts, title, opts):
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    def fill(hex_):
+        return PatternFill("solid", start_color=hex_.lstrip("#"), end_color=hex_.lstrip("#"))
+
+    HDR = fill("#1F2633")
+    HFONT = Font(bold=True, color="FFFFFF")
+    thin = Side(style="thin", color="3A4250")
+    BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
+    WRAP = Alignment(wrap_text=True, vertical="top")
+    CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    n = len(groups)
+    counts = level_counts(rows)
+    n_subs = sum(len(r["sub_rows"]) for r in rows)
+    wb = Workbook()
+
+    # ---- Summary
+    ws = wb.active
+    ws.title = "Summary"
+    ws["A1"] = title
+    ws["A1"].font = Font(bold=True, size=16)
+    ws["A2"] = f"Generated {dt.datetime.now():%Y-%m-%d %H:%M} | ATT&CK {attack.domain_name} data modified {attack.data_modified} | " \
+               f"Campaigns {'included' if opts['campaigns'] else 'excluded'} | Software-derived {'included' if opts['software'] else 'excluded'}"
+    ws["A2"].font = Font(italic=True, color="666666")
+
+    ws["A4"] = "Selected Groups"
+    ws["A4"].font = Font(bold=True, size=12)
+    hdr = ["Group ID", "Name", "Aliases", "Parent T-codes used", "ATT&CK URL"]
+    for c, h in enumerate(hdr, 1):
+        cell = ws.cell(row=5, column=c, value=h)
+        cell.fill, cell.font, cell.border = HDR, HFONT, BORDER
+    for i, g in enumerate(groups, 6):
+        vals = [g["id"], g["name"], ", ".join(g["aliases"]), per_group_counts[g["id"]], g["url"]]
+        for c, v in enumerate(vals, 1):
+            cell = ws.cell(row=i, column=c, value=v)
+            cell.border, cell.alignment = BORDER, WRAP
+        ws.cell(row=i, column=5).hyperlink = g["url"]
+
+    r0 = 6 + n + 1
+    ws.cell(row=r0, column=1, value="Color Legend").font = Font(bold=True, size=12)
+    legend_cols = 4 if opts["subs"] else 3
+    for c, h in enumerate(["Color", "Meaning", "Technique count", "Sub-technique count"][:legend_cols], 1):
+        cell = ws.cell(row=r0 + 1, column=c, value=h)
+        cell.fill, cell.font, cell.border = HDR, HFONT, BORDER
+    meaning = {RED: f"Used by ALL {n} selected groups", YELLOW: f"Used by 2 to {n - 1} groups" if n > 2 else "Used by more than one (not all) groups",
+               GREEN: "Used by only ONE selected group"}
+    for i, k in enumerate(LEVEL_ORDER, r0 + 2):
+        a = ws.cell(row=i, column=1, value=LEVEL_SHORT[k])
+        a.fill, a.font = fill(LEVELS[k][1]), Font(bold=True, color=LEVELS[k][2].lstrip("#"))
+        ws.cell(row=i, column=2, value=meaning[k])
+        ws.cell(row=i, column=3, value=counts[k][0])
+        if opts["subs"]:
+            ws.cell(row=i, column=4, value=counts[k][1])
+        for c in range(1, legend_cols + 1):
+            ws.cell(row=i, column=c).border = BORDER
+    tot = r0 + 5
+    ws.cell(row=tot, column=2, value="Total unique T-codes").font = Font(bold=True)
+    ws.cell(row=tot, column=3, value=len(rows)).font = Font(bold=True)
+    if opts["subs"]:
+        ws.cell(row=tot, column=4, value=n_subs).font = Font(bold=True)
+
+    t0 = tot + 2
+    ws.cell(row=t0, column=1, value="By Tactic").font = Font(bold=True, size=12)
+    for c, h in enumerate(["Tactic", "RED", "YELLOW", "LIGHT GREEN", "Total"], 1):
+        cell = ws.cell(row=t0 + 1, column=c, value=h)
+        cell.fill, cell.font, cell.border = HDR, HFONT, BORDER
+    for k, col in zip(LEVEL_ORDER, (2, 3, 4)):
+        ws.cell(row=t0 + 1, column=col).fill = fill(LEVELS[k][1])
+        ws.cell(row=t0 + 1, column=col).font = Font(bold=True, color=LEVELS[k][2].lstrip("#"))
+    for i, (tac, tname) in enumerate(attack.tactics, t0 + 2):
+        in_tac = [r for r in rows if tac in r["tactics"]]
+        vals = [tname] + [sum(1 for r in in_tac if r["level"] == k) for k in LEVEL_ORDER] + [len(in_tac)]
+        for c, v in enumerate(vals, 1):
+            ws.cell(row=i, column=c, value=v).border = BORDER
+    for col, w in zip("ABCDE", (24, 40, 60, 20, 50)):
+        ws.column_dimensions[col].width = w
+
+    # ---- Technique Overlap (parents, with their sub-techniques nested underneath as collapsible rows)
+    ws = wb.create_sheet("Technique Overlap")
+    hdr = ["Overlap", "# Groups", "Type", "Technique ID", "Technique Name", "Tactics"] + [g["name"] for g in groups] + ["ATT&CK URL"]
+    gcol = 7
+    for c, h in enumerate(hdr, 1):
+        cell = ws.cell(row=1, column=c, value=h)
+        cell.fill, cell.font, cell.border, cell.alignment = HDR, HFONT, BORDER, CENTER
+    i = 1
+    for r in rows:
+        tactics = ", ".join(attack.tactic_name[t] for t in r["tactics"])
+        for t, is_sub in [(r, False)] + [(sr, True) for sr in r["sub_rows"]]:
+            i += 1
+            lv = LEVELS[t["level"]]
+            vals = [LEVEL_SHORT[t["level"]], f"{t['count']}/{n}", "Sub-technique" if is_sub else "Technique",
+                    t["id"], t["name"], tactics] + ["✔" if g["id"] in t["groups"] else "" for g in groups] + [t["url"]]
+            for c, v in enumerate(vals, 1):
+                cell = ws.cell(row=i, column=c, value=v)
+                cell.border, cell.alignment = BORDER, WRAP
+                if is_sub:
+                    cell.font = Font(italic=True, color="555555")
+            for c in (1, 2):
+                cell = ws.cell(row=i, column=c)
+                cell.fill, cell.alignment = fill(lv[1]), CENTER
+                cell.font = Font(bold=not is_sub, italic=is_sub, color=lv[2].lstrip("#"))
+            if is_sub:
+                for c in (4, 5):
+                    ws.cell(row=i, column=c).alignment = Alignment(wrap_text=True, vertical="top", indent=2)
+                ws.row_dimensions[i].outlineLevel = 1
+            else:
+                for c in (4, 5):
+                    ws.cell(row=i, column=c).font = Font(bold=True)
+            for j, g in enumerate(groups):
+                if g["id"] in t["groups"]:
+                    cell = ws.cell(row=i, column=gcol + j)
+                    cell.fill, cell.alignment = fill(lv[1]), CENTER
+                    cell.font = Font(bold=True, color=lv[2].lstrip("#"))
+            ws.cell(row=i, column=len(hdr)).hyperlink = t["url"]
+    ws.sheet_properties.outlinePr.summaryBelow = False
+    widths = [13, 9, 14, 13, 42, 30] + [16] * n + [48]
+    for c, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(c)].width = w
+    ws.freeze_panes = "F2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(hdr))}{i}"
+
+    # ---- Tactic Matrix (Navigator-style)
+    ws = wb.create_sheet("Tactic Matrix")
+    used_tactics = [(t, nm) for t, nm in attack.tactics if any(t in r["tactics"] for r in rows)]
+    for c, (tac, tname) in enumerate(used_tactics, 1):
+        col_rows = [r for r in rows if tac in r["tactics"]]
+        cell = ws.cell(row=1, column=c, value=f"{tname}\n({len(col_rows)})")
+        cell.fill, cell.font, cell.border, cell.alignment = HDR, HFONT, BORDER, CENTER
+        i = 1
+        for r in col_rows:
+            for t, is_sub in [(r, False)] + [(sr, True) for sr in r["sub_rows"]]:
+                i += 1
+                lv = LEVELS[t["level"]]
+                label = f"↳ {t['id']}  {t['name']}  [{t['count']}/{n}]" if is_sub else f"{t['id']}  {t['name']}  [{t['count']}/{n}]"
+                cell = ws.cell(row=i, column=c, value=label)
+                cell.fill, cell.border = fill(lv[1]), BORDER
+                cell.font = Font(color=lv[2].lstrip("#"), size=8 if is_sub else 9, bold=not is_sub, italic=is_sub)
+                cell.alignment = Alignment(wrap_text=True, vertical="center", indent=1 if is_sub else 0)
+        ws.column_dimensions[get_column_letter(c)].width = 24
+    ws.row_dimensions[1].height = 32
+    ws.freeze_panes = "A2"
+
+    wb.save(path)
+
+
+def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import landscape, TABLOID
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.utils import simpleSplit
+    from reportlab.platypus import (BaseDocTemplate, Flowable, Frame, PageBreak, PageTemplate, Paragraph,
+                                    Spacer, Table, TableStyle)
+
+    PAGE = landscape(TABLOID)
+    W, H = PAGE
+    M = 0.45 * inch
+    BG = colors.HexColor("#0E1117")
+    PANEL = colors.HexColor("#171B24")
+    PANEL2 = colors.HexColor("#1F2633")
+    LINE = colors.HexColor("#2C3442")
+    TXT = colors.HexColor("#E6E9EF")
+    MUTED = colors.HexColor("#8B93A1")
+    ACCENT = colors.HexColor("#5AA9E6")
+    n = len(groups)
+    gname = {g["id"]: g["name"] for g in groups}
+    stamp = f"{dt.datetime.now():%Y-%m-%d %H:%M}"
+
+    def on_page(c, doc):
+        c.saveState()
+        c.setFillColor(BG)
+        c.rect(0, 0, W, H, stroke=0, fill=1)
+        c.setFillColor(ACCENT)
+        c.rect(0, H - 4, W, 4, stroke=0, fill=1)
+        c.setFont("Helvetica", 7.5)
+        c.setFillColor(MUTED)
+        c.drawString(M, 0.25 * inch, f"MITRE ATT&CK Navigator for Dummies  |  {', '.join(gname.values())}"[:180])
+        c.drawRightString(W - M, 0.25 * inch, f"Generated {stamp}  |  ATT&CK data {attack.data_modified}  |  Page {doc.page}")
+        c.restoreState()
+
+    doc = BaseDocTemplate(str(path), pagesize=PAGE, leftMargin=M, rightMargin=M, topMargin=M, bottomMargin=0.5 * inch,
+                          title=title, author="MITRE ATT&CK Navigator for Dummies")
+    frame = Frame(M, 0.5 * inch, W - 2 * M, H - M - 0.5 * inch, id="f", leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+    doc.addPageTemplates([PageTemplate(id="dark", frames=[frame], onPage=on_page)])
+
+    sty = lambda name, **kw: ParagraphStyle(name, fontName=kw.pop("font", "Helvetica"), textColor=kw.pop("color", TXT), **kw)
+    H1 = sty("h1", font="Helvetica-Bold", fontSize=26, leading=30)
+    H2 = sty("h2", font="Helvetica-Bold", fontSize=15, leading=19, spaceBefore=6, spaceAfter=6, color=ACCENT)
+    SUB = sty("sub", fontSize=10.5, leading=14, color=MUTED)
+    CELL = sty("cell", fontSize=8.5, leading=10.5)
+    CELLB = sty("cellb", font="Helvetica-Bold", fontSize=8.5, leading=10.5)
+    HDRS = sty("hdr", font="Helvetica-Bold", fontSize=8.5, leading=10.5, color=colors.white)
+
+    def dark_table(data, widths, extra=()):
+        t = Table(data, colWidths=widths, repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), PANEL2),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PANEL, colors.HexColor("#141821")]),
+            ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 3.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5),
+            *extra,
+        ]))
+        return t
+
+    counts = level_counts(rows)
+    n_subs = sum(len(r["sub_rows"]) for r in rows)
+    story = []
+
+    # ---- Page 1: summary
+    story += [Paragraph(title, H1), Spacer(1, 4),
+              Paragraph(f"Technique overlap across {n} selected group{'s' if n != 1 else ''} &nbsp;|&nbsp; "
+                        f"{len(rows)} parent T-codes" + (f" + {n_subs} sub-techniques" if opts["subs"] else " (sub-techniques rolled up)") +
+                        f" &nbsp;|&nbsp; campaigns {'included' if opts['campaigns'] else 'excluded'} "
+                        f"&nbsp;|&nbsp; software-derived {'included' if opts['software'] else 'excluded'}", SUB),
+              Spacer(1, 14)]
+
+    class Legend(Flowable):
+        def __init__(self, width):
+            super().__init__()
+            self.width, self.height = width, 78
+
+        def draw(self):
+            c = self.canv
+            gap = 14
+            bw = (self.width - gap * 2) / 3
+            meaning = {RED: f"Used by ALL {n} selected groups", YELLOW: "Used by more than one, but not all",
+                       GREEN: "Used by only ONE selected group"}
+            for i, k in enumerate(LEVEL_ORDER):
+                x = i * (bw + gap)
+                c.setFillColor(PANEL)
+                c.setStrokeColor(LINE)
+                c.roundRect(x, 0, bw, self.height, 8, stroke=1, fill=1)
+                c.setFillColor(colors.HexColor(LEVELS[k][1]))
+                c.roundRect(x, 0, 10, self.height, 4, stroke=0, fill=1)
+                c.rect(x + 5, 0, 5, self.height, stroke=0, fill=1)
+                c.setFillColor(colors.HexColor(LEVELS[k][1]))
+                c.setFont("Helvetica-Bold", 30)
+                num = str(counts[k][0])
+                c.drawString(x + 26, self.height - 42, num)
+                tx = x + 26 + c.stringWidth(num, "Helvetica-Bold", 30) + 12
+                c.setFillColor(TXT)
+                c.setFont("Helvetica-Bold", 12)
+                c.drawString(tx, self.height - 30, LEVEL_SHORT[k])
+                c.setFillColor(MUTED)
+                c.setFont("Helvetica", 9.5)
+                c.drawString(tx, self.height - 44, f"techniques  +  {counts[k][1]} sub-techniques" if opts["subs"] else "techniques")
+                c.setFillColor(TXT)
+                c.setFont("Helvetica", 10)
+                c.drawString(x + 26, 16, meaning[k])
+
+    story += [Legend(W - 2 * M), Spacer(1, 16)]
+
+    left_w = (W - 2 * M) * 0.48
+    right_w = (W - 2 * M) - left_w - 18
+
+    gdata = [[Paragraph(h, HDRS) for h in ("ID", "Group", "Aliases", "T-codes")]]
+    for g in groups:
+        al = ", ".join(g["aliases"])
+        gdata.append([Paragraph(g["id"], CELLB), Paragraph(g["name"], CELLB),
+                      Paragraph(al[:220] + ("..." if len(al) > 220 else ""), CELL), Paragraph(str(per_group_counts[g["id"]]), CELL)])
+    gtable = dark_table(gdata, [0.6 * inch, 1.45 * inch, left_w - 2.75 * inch, 0.7 * inch])
+
+    tdata = [[Paragraph("Tactic", HDRS)] + [Paragraph(LEVEL_SHORT[k], sty("h" + k, font="Helvetica-Bold", fontSize=8.5, leading=10.5,
+                                                                        color=colors.HexColor(LEVELS[k][2]))) for k in LEVEL_ORDER]
+             + [Paragraph("Total", HDRS)]]
+    for tac, tname in attack.tactics:
+        in_tac = [r for r in rows if tac in r["tactics"]]
+        tdata.append([Paragraph(tname, CELL)] + [Paragraph(str(sum(1 for r in in_tac if r["level"] == k)), CELL) for k in LEVEL_ORDER]
+                     + [Paragraph(str(len(in_tac)), CELLB)])
+    cw = (right_w - 1.9 * inch) / 4
+    ttable = dark_table(tdata, [1.9 * inch, cw, cw, cw, cw],
+                        extra=[("BACKGROUND", (1 + i, 0), (1 + i, 0), colors.HexColor(LEVELS[k][1])) for i, k in enumerate(LEVEL_ORDER)])
+
+    side = Table([[[Paragraph("Selected Groups", H2), gtable], "", [Paragraph("Coverage by Tactic", H2), ttable]]],
+                 colWidths=[left_w, 18, right_w])
+    side.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                              ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    story += [side, PageBreak()]
+
+    # ---- Matrix pages
+    used_tactics = [(t, nm) for t, nm in attack.tactics if any(t in r["tactics"] for r in rows)]
+    cols = {t: [r for r in rows if t in r["tactics"]] for t, _ in used_tactics}
+    CELL_H, SUB_H, GAP_Y = 25, 12, 2
+    avail_h = H - M - 0.5 * inch
+    capacity = avail_h - 2 - 30 - 30 - 6   # page height minus title row and tactic header
+
+    def paginate(col_rows):
+        """Split one tactic column into pages, keeping a parent together with its sub-techniques when it fits."""
+        pages, cur, used = [], [], 0
+        for r in col_rows:
+            block = [(r, False)] + [(sr, True) for sr in r["sub_rows"]]
+            block_h = sum((SUB_H if sub else CELL_H) + GAP_Y for _, sub in block)
+            if cur and used + block_h > capacity and block_h <= capacity:
+                pages.append(cur)
+                cur, used = [], 0
+            for item in block:
+                h = (SUB_H if item[1] else CELL_H) + GAP_Y
+                if used + h > capacity:
+                    pages.append(cur)
+                    cur, used = [], 0
+                cur.append(item)
+                used += h
+        if cur:
+            pages.append(cur)
+        return pages
+
+    col_pages = {t: paginate(cols[t]) for t, _ in used_tactics}
+    n_pages = max([len(v) for v in col_pages.values()] + [1])
+
+    def fit(c, text, font, size, width):
+        if c.stringWidth(text, font, size) <= width:
+            return text
+        while text and c.stringWidth(text + "...", font, size) > width:
+            text = text[:-1]
+        return text + "..."
+
+    class MatrixPage(Flowable):
+        """Navigator-style matrix: one column per tactic, parent cells with their sub-technique cells indented below."""
+        CELL_FONT = 6.3
+
+        def __init__(self, width, height, page_idx):
+            super().__init__()
+            self.width, self.height, self.page_idx = width, height, page_idx
+
+        def draw(self):
+            c = self.canv
+            ncol = len(used_tactics)
+            gap = 3
+            cw = (self.width - gap * (ncol - 1)) / ncol
+            top = self.height
+            label = "Technique Matrix" + (f"  ({self.page_idx + 1}/{n_pages})" if n_pages > 1 else "")
+            c.setFillColor(TXT)
+            c.setFont("Helvetica-Bold", 15)
+            c.drawString(0, top - 15, label)
+            c.setFillColor(MUTED)
+            c.setFont("Helvetica", 8.5)
+            c.drawString(c.stringWidth(label, "Helvetica-Bold", 15) + 14, top - 13,
+                         "indented rows = sub-techniques, each colored by its own overlap" if opts["subs"]
+                         else "parent T-codes only (sub-technique use rolled up into the parent)")
+            # inline legend
+            lx = self.width
+            for k in reversed(LEVEL_ORDER):
+                txt = f"{LEVEL_SHORT[k]} ({counts[k][0]} + {counts[k][1]} sub)" if opts["subs"] else f"{LEVEL_SHORT[k]} ({counts[k][0]})"
+                c.setFont("Helvetica", 8.5)
+                lx -= c.stringWidth(txt, "Helvetica", 8.5)
+                c.setFillColor(TXT)
+                c.drawString(lx, top - 13, txt)
+                lx -= 14
+                c.setFillColor(colors.HexColor(LEVELS[k][1]))
+                c.roundRect(lx, top - 14, 10, 10, 2, stroke=0, fill=1)
+                lx -= 16
+            y0 = top - 30
+            hh = 30
+            for i, (tac, tname) in enumerate(used_tactics):
+                x = i * (cw + gap)
+                c.setFillColor(PANEL2)
+                c.roundRect(x, y0 - hh, cw, hh, 3, stroke=0, fill=1)
+                c.setFillColor(colors.white)
+                lines = simpleSplit(tname, "Helvetica-Bold", 7.5, cw - 6)
+                ty = y0 - 11 if len(lines) > 1 else y0 - 14
+                for ln in lines[:2]:
+                    c.setFont("Helvetica-Bold", 7.5)
+                    c.drawCentredString(x + cw / 2, ty, ln)
+                    ty -= 8.5
+                c.setFillColor(MUTED)
+                c.setFont("Helvetica", 6.5)
+                c.drawCentredString(x + cw / 2, y0 - hh + 3.5, f"{len(cols[tac])} techniques")
+                y = y0 - hh - 4
+                pages = col_pages[tac]
+                for t, is_sub in (pages[self.page_idx] if self.page_idx < len(pages) else []):
+                    lv = LEVELS[t["level"]]
+                    if is_sub:
+                        sx, sw = x + 6, cw - 6
+                        c.setFillColor(colors.HexColor(lv[1]))
+                        c.roundRect(sx, y - SUB_H, sw, SUB_H, 1.5, stroke=0, fill=1)
+                        c.setFillColor(colors.HexColor(lv[2]))
+                        sid = "." + t["id"].split(".")[1]
+                        cnt = f"{t['count']}/{n}"
+                        c.setFont("Helvetica-Bold", 5.6)
+                        c.drawString(sx + 2.5, y - 8.3, sid)
+                        c.setFont("Helvetica", 5.3)
+                        c.drawRightString(sx + sw - 2.5, y - 8.3, cnt)
+                        nx = sx + 2.5 + c.stringWidth(sid, "Helvetica-Bold", 5.6) + 3
+                        room = sx + sw - 2.5 - c.stringWidth(cnt, "Helvetica", 5.3) - 3 - nx
+                        c.setFont("Helvetica", 5.6)
+                        c.drawString(nx, y - 8.3, fit(c, t["name"], "Helvetica", 5.6, room))
+                        y -= SUB_H + GAP_Y
+                        continue
+                    c.setFillColor(colors.HexColor(lv[1]))
+                    c.roundRect(x, y - CELL_H, cw, CELL_H, 2, stroke=0, fill=1)
+                    c.setFillColor(colors.HexColor(lv[2]))
+                    c.setFont("Helvetica-Bold", 6.8)
+                    c.drawString(x + 3, y - 8, t["id"])
+                    c.setFont("Helvetica", 6)
+                    c.drawRightString(x + cw - 3, y - 8, f"{t['count']}/{n}")
+                    nl = simpleSplit(t["name"], "Helvetica", self.CELL_FONT, cw - 6)
+                    if len(nl) > 2:
+                        nl = [nl[0], fit(c, " ".join(nl[1:]), "Helvetica", self.CELL_FONT, cw - 6)]
+                    c.setFont("Helvetica", self.CELL_FONT)
+                    ly = y - 15.5
+                    for ln in nl:
+                        c.drawString(x + 3, ly, ln)
+                        ly -= 7
+                    y -= CELL_H + GAP_Y
+
+    for p in range(n_pages):
+        story.append(MatrixPage(W - 2 * M, avail_h - 2, p))
+        story.append(PageBreak())
+
+    # ---- Detail table (each parent followed by its sub-techniques)
+    story.append(Paragraph("Technique &amp; Sub-Technique Detail" if opts["subs"] else "Technique Detail", H2))
+    widths = [0.95 * inch, 0.6 * inch, 0.85 * inch, 0, 2.2 * inch]
+    free = (W - 2 * M) - sum(widths)
+    gcol_w = min(1.1 * inch, (free - 2.4 * inch) / max(n, 1))
+    widths[3] = free - gcol_w * n
+    hdr = ["Overlap", "Groups", "ID", "Technique / Sub-technique", "Tactics"] + [gname[g["id"]] for g in groups]
+    data = [[Paragraph(h, HDRS) for h in hdr]]
+    extra = []
+    SUBID = sty("subid", font="Helvetica-Bold", fontSize=7.5, leading=9.5, color=MUTED, leftIndent=8)
+    SUBNM = sty("subnm", fontSize=7.8, leading=9.5, color=colors.HexColor("#C3C8D2"), leftIndent=8)
+    i = 0
+    for r in rows:
+        for t, is_sub in [(r, False)] + [(sr, True) for sr in r["sub_rows"]]:
+            i += 1
+            lv = LEVELS[t["level"]]
+            fc = colors.HexColor(lv[2])
+            fs = 7 if is_sub else 8
+            row = [Paragraph(LEVEL_SHORT[t["level"]], sty(f"lv{i}", font="Helvetica-Oblique" if is_sub else "Helvetica-Bold",
+                                                          fontSize=fs, leading=fs + 2, color=fc, leftIndent=6 if is_sub else 0)),
+                   Paragraph(f"{t['count']}/{n}", sty(f"ct{i}", font="Helvetica-Bold", fontSize=fs + 0.5, leading=fs + 2.5, color=fc)),
+                   Paragraph(t["id"], SUBID if is_sub else CELLB),
+                   Paragraph(t["name"], SUBNM if is_sub else CELLB),
+                   Paragraph("" if is_sub else ", ".join(attack.tactic_name[x] for x in r["tactics"]),
+                             sty(f"tc{i}", fontSize=7.5, leading=9.5, color=MUTED))]
+            for j, g in enumerate(groups):
+                if g["id"] in t["groups"]:
+                    row.append(Paragraph("✔", sty(f"ck{i}{j}", font="ZapfDingbats", fontSize=8 if is_sub else 9,
+                                                       leading=10, alignment=1, color=fc)))
+                    extra.append(("BACKGROUND", (5 + j, i), (5 + j, i), colors.HexColor(lv[1])))
+                else:
+                    row.append("")
+            data.append(row)
+            extra.append(("BACKGROUND", (0, i), (1, i), colors.HexColor(lv[1])))
+            if is_sub:
+                extra += [("TOPPADDING", (0, i), (-1, i), 1.5), ("BOTTOMPADDING", (0, i), (-1, i), 1.5),
+                          ("BACKGROUND", (2, i), (4, i), colors.HexColor("#12151C"))]
+            else:
+                extra.append(("LINEABOVE", (0, i), (-1, i), 1.1, colors.HexColor("#3A4456")))
+    story.append(dark_table(data, widths + [gcol_w] * n, extra=extra))
+
+    doc.build(story)
+
+
+# --------------------------------------------------------------------------- CLI
+
+def print_groups(groups):
+    for g in groups:
+        al = ", ".join(g["aliases"])
+        print(f"  {g['id']:<6} {g['name']:<32} {al[:80]}")
+
+
+def resolve(attack, queries):
+    chosen, problems = [], []
+    for q in queries:
+        g, sugg = attack.find_group(q)
+        if g:
+            if g["id"] not in {c["id"] for c in chosen}:
+                chosen.append(g)
+        else:
+            problems.append((q, sugg))
+    return chosen, problems
+
+
+def interactive(attack):
+    print("\n" + "=" * 70)
+    print("  MITRE ATT&CK NAVIGATOR FOR DUMMIES")
+    print("=" * 70)
+    print("Enter APT groups separated by commas. Use the name, an alias, or a G-ID.")
+    print("  e.g.  APT28, APT29, Lazarus Group      or     G0007, G0016, G0032")
+    print("Commands:  list   = show all groups")
+    print("           find X = search groups by name/alias (e.g. find bear)")
+    print("           quit   = exit\n")
+    while True:
+        try:
+            line = input("Groups> ").strip()
+        except EOFError:
+            return None
+        if not line:
+            continue
+        low = line.lower()
+        if low in ("q", "quit", "exit"):
+            return None
+        if low == "list":
+            print_groups(sorted(attack.groups.values(), key=lambda g: g["name"].lower()))
+            continue
+        if low.startswith(("find ", "search ")):
+            hits = attack.search(line.split(" ", 1)[1])
+            print_groups(hits) if hits else print("  No matches.")
+            continue
+        queries = [q for q in (s.strip() for s in line.split(",")) if q]
+        chosen, problems = resolve(attack, queries)
+        for q, sugg in problems:
+            print(f"\n  Could not uniquely match '{q}'.")
+            if sugg:
+                print("  Did you mean one of these? (use the G-ID to be exact)")
+                print_groups(sugg[:15])
+            else:
+                print("  No similar groups found. Try 'find <word>'.")
+        if problems:
+            print()
+            continue
+        print("\nSelected:")
+        print_groups(chosen)
+        ok = input("\nGenerate layer for these groups? [Y/n] ").strip().lower()
+        if ok in ("", "y", "yes"):
+            return chosen
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Generate color-coded ATT&CK Navigator overlap layers (JSON + Excel + dark PDF) for APT groups.")
+    ap.add_argument("groups", nargs="*", help="group names, aliases or G-IDs (omit for interactive mode)")
+    ap.add_argument("--list", action="store_true", help="list all groups and exit")
+    ap.add_argument("--search", metavar="TEXT", help="search groups by name/alias and exit")
+    ap.add_argument("--no-campaigns", action="store_true", help="exclude techniques from campaigns attributed to the groups")
+    ap.add_argument("--include-software", action="store_true", help="also include techniques of malware/tools the groups use")
+    ap.add_argument("--mode", choices=["both", "parents", "subs"], default="both",
+                    help="which outputs to build: parent-only, parent+sub-techniques, or both (default)")
+    ap.add_argument("--domain", choices=list(DOMAINS), default="enterprise", help="ATT&CK matrix (default: enterprise)")
+    ap.add_argument("--update", action="store_true", help="re-download the latest ATT&CK data first")
+    ap.add_argument("--title", help="custom report title")
+    ap.add_argument("--out", help="output folder (default: ./output/<timestamp>_<groups>)")
+    args = ap.parse_args()
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")  # Windows consoles choke on some alias characters
+        except AttributeError:
+            pass
+
+    bundle, domain_name, _ = load_bundle(args.domain, args.update)
+    attack = Attack(bundle, domain_name)
+    del bundle
+
+    if args.list:
+        print_groups(sorted(attack.groups.values(), key=lambda g: g["name"].lower()))
+        return 0
+    if args.search:
+        hits = attack.search(args.search)
+        print_groups(hits) if hits else print("No matches.")
+        return 0
+
+    is_interactive = not args.groups
+    if is_interactive:
+        groups = interactive(attack)
+        if not groups:
+            return 0
+    else:
+        groups, problems = resolve(attack, args.groups)
+        if problems:
+            for q, sugg in problems:
+                print(f"Could not uniquely match '{q}'.")
+                if sugg:
+                    print("Did you mean:")
+                    print_groups(sugg[:15])
+            return 2
+
+    opts = {"campaigns": not args.no_campaigns, "software": args.include_software}
+    rows, per_group_counts = analyze(attack, groups, **opts)
+    if not rows:
+        print("The selected groups have no recorded techniques.")
+        return 1
+
+    title = args.title or ("APT Overlap: " + " vs ".join(g["name"] for g in groups))
+    base = safe_name("_".join(g["name"] for g in groups))[:80]
+    out = Path(args.out) if args.out else OUT_DIR / f"{dt.datetime.now():%Y%m%d_%H%M%S}_{base}"
+
+    counts = level_counts(rows)
+    n_subs = sum(len(r["sub_rows"]) for r in rows)
+    print(f"\n{len(rows)} parent T-codes:  RED {counts[RED][0]}  |  YELLOW {counts[YELLOW][0]}  |  LIGHT GREEN {counts[GREEN][0]}")
+    print(f"{n_subs} sub-techniques:  RED {counts[RED][1]}  |  YELLOW {counts[YELLOW][1]}  |  LIGHT GREEN {counts[GREEN][1]}")
+
+    # Each run produces two sets: parent T-codes only, and parents with their sub-techniques.
+    variants = {"parents": ("1_Parent_Only", "parent-only", " (Parent T-codes)",
+                            [dict(r, sub_rows=[]) for r in rows]),
+                "subs": ("2_Parent_and_Sub", "parent-and-sub", " (Parent + Sub-techniques)", rows)}
+    chosen = list(variants) if args.mode == "both" else [args.mode]
+    for key in chosen:
+        folder, suffix, title_suffix, vrows = variants[key]
+        vout = out / folder
+        vout.mkdir(parents=True, exist_ok=True)
+        vopts = dict(opts, subs=(key == "subs"))
+        vtitle = title + title_suffix
+        layer_p = vout / f"{base}_{suffix}_layer.json"
+        xlsx_p = vout / f"{base}_{suffix}.xlsx"
+        pdf_p = vout / f"{base}_{suffix}.pdf"
+        write_layer(layer_p, attack, groups, vrows, vtitle, vopts)
+        write_excel(xlsx_p, attack, groups, vrows, per_group_counts, vtitle, vopts)
+        write_pdf(pdf_p, attack, groups, vrows, per_group_counts, vtitle, vopts)
+        print(f"\n[{folder}]")
+        print(f"  Navigator layer : {layer_p}")
+        print(f"  Excel workbook  : {xlsx_p}")
+        print(f"  PDF report      : {pdf_p}")
+    print("\nTip: open https://mitre-attack.github.io/attack-navigator/ -> Open Existing Layer -> Upload from local -> pick the _layer.json")
+
+    if is_interactive and sys.platform == "win32":
+        os.startfile(out)
+        input("\nPress Enter to close...")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

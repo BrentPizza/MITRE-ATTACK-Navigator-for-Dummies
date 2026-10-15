@@ -1,0 +1,16 @@
+# ATT&CK STIX data is downloaded automatically on first run (~50 MB)
+data/
+
+# Generated reports
+output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# PyInstaller
+build/
+dist/
+*.spec
