@@ -6,7 +6,7 @@ The tool pulls the latest MITRE ATT&CK data for the **Enterprise** matrix (the d
 
 ## What it looks like
 
-APT28, APT29, Lazarus Group and APT41 in ATT&CK Navigator (dark theme), each with the tool's slide legend placed in an empty corner.
+APT28, APT29, Lazarus Group and APT41, captured directly from the live [MITRE ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/) (dark theme) after loading the tool's layer files with **Open Existing Layer**.
 
 ### Parent techniques only
 
