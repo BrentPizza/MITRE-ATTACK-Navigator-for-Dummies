@@ -16,14 +16,19 @@ each containing:
     *.xlsx         -> Excel workbook (summary, overlap table, tactic matrix)
     *.pdf          -> dark-themed PDF report with the matrix view
 
-Usage:
-    python attack_overlap.py                         (interactive, dummy-proof mode)
-    python attack_overlap.py APT28 APT29 "Lazarus Group"
+Usage:  python attack_overlap.py [mobile|ics] <groups...> [options]
+    Enterprise is the default matrix. Put "mobile" or "ics" first to use that matrix instead.
+
+    python attack_overlap.py                                   (interactive, dummy-proof mode)
+    python attack_overlap.py APT29 "Aquatic Panda" APT1        (Enterprise)
+    python attack_overlap.py mobile APT28 APT-C-23 Windshift
+    python attack_overlap.py ics "Sandworm Team" ALLANITE APT33
     python attack_overlap.py G0007 G0016 --no-campaigns
-    python attack_overlap.py --list                  (list every group)
-    python attack_overlap.py --search panda          (search names/aliases)
-    python attack_overlap.py --update APT28 APT29    (re-download latest ATT&CK data)
-    python attack_overlap.py APT28 APT29 --mode parents   (only the parent-only set)
+    python attack_overlap.py --list                            (list every Enterprise group)
+    python attack_overlap.py mobile --list                     (list every Mobile group)
+    python attack_overlap.py ics --search lazarus              (search names/aliases)
+    python attack_overlap.py --update APT28 APT29              (re-download latest ATT&CK data)
+    python attack_overlap.py APT28 APT29 --mode parents        (only the parent-only set)
 """
 
 import argparse
@@ -41,11 +46,19 @@ HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE / "data"
 OUT_DIR = HERE / "output"
 
-DOMAINS = {
+DOMAINS = {  # matrix -> (Navigator domain / data file name, download URL)
     "enterprise": ("enterprise-attack", "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"),
     "mobile": ("mobile-attack", "https://raw.githubusercontent.com/mitre/cti/master/mobile-attack/mobile-attack.json"),
     "ics": ("ics-attack", "https://raw.githubusercontent.com/mitre/cti/master/ics-attack/ics-attack.json"),
 }
+DOMAIN_LABEL = {"enterprise": "Enterprise", "mobile": "Mobile", "ics": "ICS"}
+DOMAIN_ALIASES = {"enterprise": "enterprise", "enterprise-attack": "enterprise", "ent": "enterprise",
+                  "mobile": "mobile", "mobile-attack": "mobile", "mob": "mobile",
+                  "ics": "ics", "ics-attack": "ics"}
+
+
+def parse_domain(text):
+    return DOMAIN_ALIASES.get(text.strip().lower())
 
 # Overlap levels: key -> (label, hex color, text color on that fill)
 RED, YELLOW, GREEN = "high", "two", "single"
@@ -65,7 +78,7 @@ def load_bundle(domain="enterprise", update=False):
     DATA_DIR.mkdir(exist_ok=True)
     path = DATA_DIR / f"{name}.json"
     if update or not path.exists():
-        print(f"Downloading latest MITRE ATT&CK {domain} data (~50 MB)...")
+        print(f"Downloading latest MITRE ATT&CK {DOMAIN_LABEL[domain]} data...")
         tmp = path.with_suffix(".tmp")
         urllib.request.urlretrieve(url, tmp)
         tmp.replace(path)
@@ -146,8 +159,10 @@ class Attack:
     def find_group(self, query):
         """Return (group, None) or (None, [suggestions])."""
         q = query.strip().lower()
+        squash = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())  # "AquaticPanda" == "Aquatic Panda"
+        sq = squash(q)
         exact = [g for g in self.groups.values()
-                 if q == g["id"].lower() or q == g["name"].lower() or q in (a.lower() for a in g["aliases"])]
+                 if sq and sq in {squash(x) for x in [g["id"], g["name"]] + g["aliases"]}]
         if len(exact) == 1:
             return exact[0], None
         if len(exact) > 1:
@@ -796,10 +811,24 @@ def resolve(attack, queries):
     return chosen, problems
 
 
-def interactive(attack):
-    print("\n" + "=" * 70)
-    print("  MITRE ATT&CK NAVIGATOR FOR DUMMIES")
-    print("=" * 70)
+def ask_domain():
+    while True:
+        try:
+            line = input("Matrix? Press Enter for Enterprise, or type mobile / ics: ").strip()
+        except EOFError:
+            return None
+        if not line:
+            return "enterprise"
+        if line.lower() in ("q", "quit", "exit"):
+            return None
+        d = parse_domain(line)
+        if d:
+            return d
+        print("  Please type enterprise, mobile or ics (or just press Enter for Enterprise).")
+
+
+def interactive(attack, domain):
+    print(f"\n[{DOMAIN_LABEL[domain]} matrix: {len(attack.groups)} groups]")
     print("Enter APT groups separated by commas. Use the name, an alias, or a G-ID.")
     print("  e.g.  APT28, APT29, Lazarus Group      or     G0007, G0016, G0032")
     print("Commands:  list   = show all groups")
@@ -843,14 +872,20 @@ def interactive(attack):
 
 def main():
     ap = argparse.ArgumentParser(description="Generate color-coded ATT&CK Navigator overlap layers (JSON + Excel + dark PDF) for APT groups.")
-    ap.add_argument("groups", nargs="*", help="group names, aliases or G-IDs (omit for interactive mode)")
+    ap.add_argument("groups", nargs="*", metavar="[mobile|ics] GROUP",
+                    help="optional matrix (mobile or ics; Enterprise if left out) followed by group names, "
+                         "aliases or G-IDs (omit everything for interactive mode)")
     ap.add_argument("--list", action="store_true", help="list all groups and exit")
     ap.add_argument("--search", metavar="TEXT", help="search groups by name/alias and exit")
     ap.add_argument("--no-campaigns", action="store_true", help="exclude techniques from campaigns attributed to the groups")
-    ap.add_argument("--include-software", action="store_true", help="also include techniques of malware/tools the groups use")
+    sw = ap.add_mutually_exclusive_group()
+    sw.add_argument("--include-software", dest="software", action="store_true", default=None,
+                    help="also include techniques of malware/tools the groups use (default for mobile and ics)")
+    sw.add_argument("--no-software", dest="software", action="store_false",
+                    help="only count techniques linked directly to the group (default for enterprise)")
     ap.add_argument("--mode", choices=["both", "parents", "subs"], default="both",
                     help="which outputs to build: parent-only, parent+sub-techniques, or both (default)")
-    ap.add_argument("--domain", choices=list(DOMAINS), default="enterprise", help="ATT&CK matrix (default: enterprise)")
+    ap.add_argument("--domain", choices=list(DOMAINS), help=argparse.SUPPRESS)  # older spelling of the matrix word
     ap.add_argument("--update", action="store_true", help="re-download the latest ATT&CK data first")
     ap.add_argument("--title", help="custom report title")
     ap.add_argument("--out", help="output folder (default: ./output/<timestamp>_<groups>)")
@@ -861,7 +896,25 @@ def main():
         except AttributeError:
             pass
 
-    bundle, domain_name, _ = load_bundle(args.domain, args.update)
+    # Optional first word picks the matrix: "mobile" or "ics" (Enterprise otherwise).
+    domain = args.domain
+    if args.groups and parse_domain(args.groups[0]):
+        domain = parse_domain(args.groups.pop(0))
+    is_interactive = not args.groups and not (args.list or args.search)
+    if is_interactive:
+        print("\n" + "=" * 70)
+        print("  MITRE ATT&CK NAVIGATOR FOR DUMMIES")
+        print("=" * 70)
+    if not domain:
+        domain = ask_domain() if is_interactive else "enterprise"
+        if not domain:
+            return 0
+    label = DOMAIN_LABEL[domain]
+    if args.software is None:
+        # Mobile/ICS groups are mostly linked to techniques through their malware, so count software there by default.
+        args.software = domain != "enterprise"
+
+    bundle, domain_name, _ = load_bundle(domain, args.update)
     attack = Attack(bundle, domain_name)
     del bundle
 
@@ -873,29 +926,34 @@ def main():
         print_groups(hits) if hits else print("No matches.")
         return 0
 
-    is_interactive = not args.groups
     if is_interactive:
-        groups = interactive(attack)
+        groups = interactive(attack, domain)
         if not groups:
             return 0
     else:
         groups, problems = resolve(attack, args.groups)
         if problems:
             for q, sugg in problems:
-                print(f"Could not uniquely match '{q}'.")
+                print(f"Could not uniquely match '{q}' in the {label} matrix.")
                 if sugg:
                     print("Did you mean:")
                     print_groups(sugg[:15])
+            print(f"\nNot every group is in every matrix. See the {label} groups with:  "
+                  f"python attack_overlap.py {'' if domain == 'enterprise' else domain + ' '}--list")
             return 2
 
-    opts = {"campaigns": not args.no_campaigns, "software": args.include_software}
+    opts = {"campaigns": not args.no_campaigns, "software": args.software}
     rows, per_group_counts = analyze(attack, groups, **opts)
     if not rows:
-        print("The selected groups have no recorded techniques.")
+        print(f"The selected groups have no recorded techniques in the {label} matrix.")
         return 1
+    for g in groups:
+        if not per_group_counts.get(g["id"]):
+            print(f"Note: {g['name']} ({g['id']}) has no recorded techniques in the {label} matrix"
+                  + ("" if opts["software"] else " (try --include-software)") + ".")
 
-    title = args.title or ("APT Overlap: " + " vs ".join(g["name"] for g in groups))
-    base = safe_name("_".join(g["name"] for g in groups))[:80]
+    title = args.title or (f"APT Overlap ({label}): " + " vs ".join(g["name"] for g in groups))
+    base = safe_name(label + "_" + "_".join(g["name"] for g in groups))[:80]
     out = Path(args.out) if args.out else OUT_DIR / f"{dt.datetime.now():%Y%m%d_%H%M%S}_{base}"
 
     counts = level_counts(rows)

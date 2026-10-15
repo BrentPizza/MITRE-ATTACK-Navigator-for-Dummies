@@ -2,7 +2,7 @@
 
 Pick a few APT groups and get a color-coded ATT&CK overlap map with no clicking around in the Navigator.
 
-The tool pulls the latest MITRE ATT&CK data. It finds every technique (T-code) the selected groups are documented as using, and colors each one by how many of the groups share it:
+The tool pulls the latest MITRE ATT&CK data for the **Enterprise** matrix (the default), or for **Mobile** or **ICS** if you ask for it. It finds every technique (T-code) the selected groups are documented as using, and colors each one by how many of the groups share it:
 
 | Color | Meaning |
 |---|---|
@@ -45,13 +45,14 @@ A full example for APT28, APT29 and Sandworm Team is in [`examples/`](examples/A
 1. Install [Python 3.10+](https://www.python.org/downloads/) and tick **"Add python.exe to PATH"**.
 2. Download or clone this repo.
 3. Double-click **`Run ATTACK Overlap.bat`**.
-4. Type your groups, separated by commas. You can use names, aliases or G-IDs:
+4. Pick the matrix: just press **Enter** for Enterprise, or type `mobile` or `ics`.
+5. Type your groups, separated by commas. You can use names, aliases or G-IDs:
    ```
    Groups> APT28, Cozy Bear, G0034
    ```
-5. Confirm. The output folder opens automatically.
+6. Confirm. The output folder opens automatically.
 
-The first run downloads the ATT&CK dataset (about 50 MB) into `data/`. Later runs reuse it.
+The first run of each matrix downloads its ATT&CK dataset into `data/` (Enterprise is about 50 MB). Later runs reuse it.
 
 Interactive commands:
 
@@ -67,18 +68,23 @@ Interactive commands:
 pip install -r requirements.txt
 ```
 
+Enterprise is the default. Put `mobile` or `ics` first to use one of those matrices instead:
+
 ```bash
-python attack_overlap.py APT28 APT29 "Sandworm Team"
+python attack_overlap.py APT29 "Aquatic Panda" APT1                 # Enterprise
+python attack_overlap.py mobile APT28 APT-C-23 Windshift            # Mobile
+python attack_overlap.py ics "Sandworm Team" ALLANITE APT33         # ICS
 ```
+
+Names don't need exact spacing or capitals (`AquaticPanda` works). Not every group appears in every matrix. To see which groups a matrix has, use `python attack_overlap.py mobile --list`.
 
 | Option | Description |
 |---|---|
 | `--mode both\|parents\|subs` | which output set(s) to build (default `both`) |
 | `--no-campaigns` | ignore techniques from campaigns attributed to the groups (included by default, same as attack.mitre.org) |
-| `--include-software` | also count techniques of the malware and tools each group uses |
+| `--include-software` / `--no-software` | count (or don't count) techniques of the malware and tools each group uses. Off by default for Enterprise, on by default for Mobile and ICS, where ATT&CK links most groups to techniques through their malware |
 | `--update` | re-download the latest ATT&CK data before running |
-| `--domain enterprise\|mobile\|ics` | which ATT&CK matrix to use (default `enterprise`) |
-| `--list` / `--search TEXT` | list or search groups, then exit |
+| `--list` / `--search TEXT` | list or search the groups in the chosen matrix, then exit |
 | `--title "..."` | custom report title |
 | `--out DIR` | custom output folder |
 
@@ -97,6 +103,7 @@ Hover over a technique to see which groups used it. The legend shows the color k
 * **Sub-techniques** (in the parent-and-sub outputs) are scored on their own. A parent can be RED while some of its sub-techniques are YELLOW or GREEN.
 * Revoked and deprecated objects are ignored.
 * If only one group is selected, everything it uses is LIGHT GREEN.
+* Each run uses one matrix. The output folder and file names start with it (`Enterprise_`, `Mobile_` or `ICS_`), and the layer opens in the matching Navigator matrix.
 
 ## Data and attribution
 
