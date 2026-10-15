@@ -843,36 +843,83 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
     doc.build(story)
 
 
-def short_meaning(lo, hi, n):
-    if lo == hi == n:
-        return "Both groups" if n == 2 else ("1 group" if n == 1 else f"All {n} groups")
-    if lo == hi:
-        return "1 group" if lo == 1 else f"{lo} of {n} groups"
-    return f"{lo}-{hi} of {n} groups"
-
-
-def write_legend(path):
-    """Minimal PNG legend for slides: gray background, "Legend", one colored cell per level."""
+def write_legend(path, attack, groups, label):
+    """Briefing-slide legend: gray panel, LEGEND title bar, Overlap | Meaning table, groups + source footer."""
     import reportlab
     from PIL import Image, ImageDraw, ImageFont
     fdir = Path(reportlab.__file__).parent / "fonts"   # Vera ships with reportlab, so this works on any machine
-    f_title = ImageFont.truetype(str(fdir / "VeraBd.ttf"), 112)
-    f_cell = ImageFont.truetype(str(fdir / "Vera.ttf"), 88)
-    n = len(BANDS) and max(hi for _, _, hi in BANDS)
-    texts = [(lv, short_meaning(lo, hi, n)) for lv, lo, hi in BANDS]
+    font = lambda size, bold=False: ImageFont.truetype(str(fdir / ("VeraBd.ttf" if bold else "Vera.ttf")), size)
+    f_title, f_head, f_cell, f_cellb, f_foot = font(52, True), font(36, True), font(38), font(38, True), font(28)
+    BG, BAR, LINE, CELL, TXT, MUTED = "#D9D9D9", "#BFBFBF", "#7F7F7F", "#F2F2F2", "#000000", "#404040"
 
-    pad, cell_h, gap = 80, 192, 24
-    cell_w = int(max(f_cell.getlength(t) for _, t in texts)) + 160
-    width = max(cell_w, int(f_title.getlength("Legend"))) + 2 * pad
-    height = pad + 140 + 48 + len(texts) * (cell_h + gap) - gap + pad
-    img = Image.new("RGB", (width, height), "#D9D9D9")
+    n = len(groups)
+    rows = []
+    for lv, lo, hi in BANDS:
+        count = f"{lo} of {n}" if lo == hi else f"{lo}-{hi} of {n}"
+        if lo == hi == n and n > 1:
+            meaning = "Used by both groups" if n == 2 else f"Used by all {n} groups"
+        elif lo == hi == 1:
+            meaning = "Used by 1 group only"
+        elif lo == hi:
+            meaning = f"Used by {lo} of {n} groups"
+        else:
+            meaning = f"Used by {lo} to {hi} of {n} groups"
+        rows.append((lv, count, meaning))
+    caption = f"Shared ATT&CK techniques across {n} selected APT group{'s' if n != 1 else ''}"
+    foot = [f"Groups: {', '.join(g['name'] for g in groups)}",
+            f"Source: MITRE ATT&CK\u00ae {label}, data as of {attack.data_modified}"]
+
+    pad, row_h, head_h, bar_h = 48, 96, 76, 104
+    c1 = int(max(max(f_cellb.getlength(c) for _, c, _ in rows), f_head.getlength("Overlap"))) + 80
+    c2 = int(max(max(f_cell.getlength(m) for _, _, m in rows), f_head.getlength("Meaning"))) + 80
+    table_w = c1 + c2
+
+    def wrap(text, fnt, maxw):   # word-wrap footer lines to the table width
+        out, cur = [], ""
+        for w in text.split(" "):
+            if cur and fnt.getlength(cur + " " + w) > maxw:
+                out.append(cur)
+                cur = w
+            else:
+                cur = (cur + " " + w).strip()
+        return out + [cur]
+
+    table_w = max(table_w, int(f_cell.getlength(caption)))
+    c2 = table_w - c1
+    foot_lines = [l for t in foot for l in wrap(t, f_foot, table_w)]
+    width = table_w + 2 * pad
+    height = bar_h + pad + 58 + 24 + head_h + row_h * len(rows) + 28 + 40 * len(foot_lines) + pad
+
+    img = Image.new("RGB", (width, height), BG)
     d = ImageDraw.Draw(img)
-    d.text((pad, pad), "Legend", font=f_title, fill="#1A1A1A")
-    y = pad + 140 + 48
-    for lv, t in texts:
-        d.rectangle([pad, y, pad + cell_w, y + cell_h], fill=LEVELS[lv][1])
-        d.text((pad + cell_w / 2, y + cell_h / 2), t, font=f_cell, fill=LEVELS[lv][2], anchor="mm")
-        y += cell_h + gap
+    d.rectangle([0, 0, width - 1, bar_h], fill=BAR)
+    d.text((pad, bar_h / 2), "LEGEND", font=f_title, fill=TXT, anchor="lm")
+    d.line([0, bar_h, width, bar_h], fill=LINE, width=3)
+    y = bar_h + pad
+    d.text((pad, y), caption, font=f_cell, fill=TXT)
+    y += 58 + 24
+
+    x0, x1, x2 = pad, pad + c1, pad + table_w
+    d.rectangle([x0, y, x2, y + head_h], fill=BAR)
+    d.text((x0 + c1 / 2, y + head_h / 2), "Overlap", font=f_head, fill=TXT, anchor="mm")
+    d.text((x1 + 32, y + head_h / 2), "Meaning", font=f_head, fill=TXT, anchor="lm")
+    top = y
+    y += head_h
+    for lv, count, meaning in rows:
+        d.rectangle([x0, y, x1, y + row_h], fill=LEVELS[lv][1])
+        d.rectangle([x1, y, x2, y + row_h], fill=CELL)
+        d.text((x0 + c1 / 2, y + row_h / 2), count, font=f_cellb, fill=LEVELS[lv][2], anchor="mm")
+        d.text((x1 + 32, y + row_h / 2), meaning, font=f_cell, fill=TXT, anchor="lm")
+        d.line([x0, y, x2, y], fill=LINE, width=2)
+        y += row_h
+    d.rectangle([x0, top, x2, y], outline=LINE, width=3)
+    d.line([x1, top, x1, y], fill=LINE, width=2)
+
+    y += 28
+    for l in foot_lines:
+        d.text((pad, y), l, font=f_foot, fill=MUTED)
+        y += 40
+    d.rectangle([0, 0, width - 1, height - 1], outline=LINE, width=3)
     img.save(path, dpi=(300, 300))
 
 
@@ -1054,7 +1101,7 @@ def main():
     chosen = list(variants) if args.mode == "both" else [args.mode]
     out.mkdir(parents=True, exist_ok=True)
     legend_p = out / f"{base}_legend.png"
-    write_legend(legend_p)
+    write_legend(legend_p, attack, groups, label)
     for key in chosen:
         folder, suffix, title_suffix, vrows = variants[key]
         vout = out / folder
