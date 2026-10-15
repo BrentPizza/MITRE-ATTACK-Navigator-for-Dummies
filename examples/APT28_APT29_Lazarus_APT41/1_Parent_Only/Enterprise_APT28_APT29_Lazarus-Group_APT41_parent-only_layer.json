@@ -1,11 +1,11 @@
 {
-  "name": "APT Overlap: APT28 vs APT29 vs Sandworm Team (Parent T-codes)",
+  "name": "APT Overlap (Enterprise): APT28 vs APT29 vs Lazarus Group vs APT41 (Parent T-codes)",
   "versions": {
     "layer": "4.5",
     "navigator": "5.1.0"
   },
   "domain": "enterprise-attack",
-  "description": "Parent technique overlap for: APT28 (G0007), APT29 (G0016), Sandworm Team (G0034). RED = all 3 groups, YELLOW = 2+ groups, LIGHT GREEN = 1 group. Sub-technique use is rolled up into the parent T-code. Campaigns included; software-derived techniques excluded. ATT&CK data modified 2026-07-31.",
+  "description": "Parent technique overlap for: APT28 (G0007), APT29 (G0016), Lazarus Group (G0032), APT41 (G0096). RED = ALL 4 groups; ORANGE = exactly 3 of 4 groups; YELLOW = exactly 2 of 4 groups; LIGHT GREEN = only ONE group. Sub-technique use is rolled up into the parent T-code. Campaigns included; software-derived techniques excluded. ATT&CK data modified 2026-07-31.",
   "filters": {
     "platforms": [
       "Containers",
@@ -34,211 +34,505 @@
   "hideDisabled": true,
   "techniques": [
     {
-      "techniqueID": "T1003",
-      "score": 3,
+      "techniqueID": "T1001",
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1005",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1016",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1021",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1027",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1036",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1048",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1059",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1070",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1071",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1074",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1078",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1083",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1090",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1098",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1102",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1105",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1110",
-      "score": 3,
+      "score": 4,
       "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1140",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1203",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1218",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1505",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1547",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1560",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1566",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1573",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1583",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1588",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1685",
+      "score": 4,
+      "color": "#E5383B",
+      "comment": "RED: used by 4/4 - APT28, APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1003",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1037",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1047",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1053",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1056",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1057",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29, Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1087",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT29, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -246,27 +540,27 @@
     {
       "techniqueID": "T1133",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1140",
+      "techniqueID": "T1134",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -274,41 +568,13 @@
     {
       "techniqueID": "T1190",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1199",
-      "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1203",
-      "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
@@ -316,13 +582,13 @@
     {
       "techniqueID": "T1204",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -330,69 +596,83 @@
     {
       "techniqueID": "T1213",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1218",
+      "techniqueID": "T1542",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1505",
+      "techniqueID": "T1546",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1566",
+      "techniqueID": "T1550",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1583",
+      "techniqueID": "T1553",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT29, Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1567",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -400,13 +680,13 @@
     {
       "techniqueID": "T1584",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -414,27 +694,13 @@
     {
       "techniqueID": "T1586",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1588",
-      "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
@@ -442,13 +708,13 @@
     {
       "techniqueID": "T1589",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -456,55 +722,97 @@
     {
       "techniqueID": "T1595",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT28, APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1685",
+      "techniqueID": "T1680",
       "score": 3,
-      "color": "#E5383B",
-      "comment": "RED: used by 3/3 - APT28, APT29, Sandworm Team",
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT29, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29, Sandworm Team"
+          "value": "APT29, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1001",
-      "score": 2,
-      "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "techniqueID": "T1684",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT28, Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1016",
-      "score": 2,
-      "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "techniqueID": "T1686",
+      "score": 3,
+      "color": "#F48C06",
+      "comment": "ORANGE: used by 3/4 - APT28, APT29, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT28, APT29, Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1008",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1012",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1014",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - APT28, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT41"
         }
       ],
       "showSubtechniques": false
@@ -513,110 +821,96 @@
       "techniqueID": "T1018",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1037",
+      "techniqueID": "T1030",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT28, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1040",
+      "techniqueID": "T1033",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, Sandworm Team"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1047",
+      "techniqueID": "T1041",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1048",
+      "techniqueID": "T1046",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1053",
+      "techniqueID": "T1049",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1056",
+      "techniqueID": "T1055",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1057",
-      "score": 2,
-      "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -625,7 +919,7 @@
       "techniqueID": "T1068",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, APT29",
       "enabled": true,
       "metadata": [
         {
@@ -636,29 +930,43 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1074",
+      "techniqueID": "T1069",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1087",
+      "techniqueID": "T1082",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "Lazarus Group, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1104",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -667,12 +975,26 @@
       "techniqueID": "T1114",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, APT29",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
           "value": "APT28, APT29"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1119",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - APT28, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT41"
         }
       ],
       "showSubtechniques": false
@@ -681,12 +1003,26 @@
       "techniqueID": "T1136",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1189",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - APT28, Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -695,12 +1031,40 @@
       "techniqueID": "T1195",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1199",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - APT28, APT29",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, APT29"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1221",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - APT28, Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT28, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -709,12 +1073,12 @@
       "techniqueID": "T1484",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, APT41"
         }
       ],
       "showSubtechniques": false
@@ -723,7 +1087,7 @@
       "techniqueID": "T1528",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, APT29",
       "enabled": true,
       "metadata": [
         {
@@ -734,57 +1098,15 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1539",
+      "techniqueID": "T1543",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1546",
-      "score": 2,
-      "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1547",
-      "score": 2,
-      "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1550",
-      "score": 2,
-      "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -793,26 +1115,26 @@
       "techniqueID": "T1555",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1560",
+      "techniqueID": "T1557",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT28, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -821,26 +1143,54 @@
       "techniqueID": "T1561",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT28, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, Sandworm Team"
+          "value": "APT28, Lazarus Group"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1573",
+      "techniqueID": "T1564",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT28, Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1568",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - APT29, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT29, APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1574",
+      "score": 2,
+      "color": "#F4D35E",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
@@ -849,12 +1199,12 @@
       "techniqueID": "T1585",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -863,12 +1213,12 @@
       "techniqueID": "T1587",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT29, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT29, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT29, Sandworm Team"
+          "value": "APT29, Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -877,40 +1227,40 @@
       "techniqueID": "T1591",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - APT28, Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, Sandworm Team"
+          "value": "APT28, Lazarus Group"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1598",
+      "techniqueID": "T1593",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, Sandworm Team",
+      "comment": "YELLOW: used by 2/4 - Lazarus Group, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, Sandworm Team"
+          "value": "Lazarus Group, APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1686",
+      "techniqueID": "T1596",
       "score": 2,
       "color": "#F4D35E",
-      "comment": "YELLOW: used by 2/3 - APT28, APT29",
+      "comment": "YELLOW: used by 2/4 - APT28, APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28, APT29"
+          "value": "APT28, APT41"
         }
       ],
       "showSubtechniques": false
@@ -919,7 +1269,7 @@
       "techniqueID": "T1006",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -930,15 +1280,15 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1014",
+      "techniqueID": "T1010",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -947,40 +1297,12 @@
       "techniqueID": "T1025",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
           "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1030",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1033",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
         }
       ],
       "showSubtechniques": false
@@ -989,7 +1311,7 @@
       "techniqueID": "T1039",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1000,85 +1322,15 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1041",
+      "techniqueID": "T1040",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1049",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1055",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1069",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT29"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1072",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1082",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "APT28"
         }
       ],
       "showSubtechniques": false
@@ -1087,7 +1339,7 @@
       "techniqueID": "T1091",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1101,26 +1353,12 @@
       "techniqueID": "T1092",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
           "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1095",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
         }
       ],
       "showSubtechniques": false
@@ -1129,12 +1367,12 @@
       "techniqueID": "T1106",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1143,12 +1381,12 @@
       "techniqueID": "T1112",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
@@ -1157,21 +1395,7 @@
       "techniqueID": "T1113",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1119",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1185,12 +1409,26 @@
       "techniqueID": "T1120",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
           "value": "APT28"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1124",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1199,26 +1437,26 @@
       "techniqueID": "T1132",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1134",
+      "techniqueID": "T1135",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
@@ -1227,7 +1465,7 @@
       "techniqueID": "T1137",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1238,15 +1476,29 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1189",
+      "techniqueID": "T1197",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28"
+          "value": "APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1202",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1255,7 +1507,7 @@
       "techniqueID": "T1210",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1269,7 +1521,7 @@
       "techniqueID": "T1211",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1280,29 +1532,29 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1219",
+      "techniqueID": "T1220",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1221",
+      "techniqueID": "T1480",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
@@ -1311,7 +1563,7 @@
       "techniqueID": "T1482",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1325,12 +1577,12 @@
       "techniqueID": "T1485",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1339,12 +1591,12 @@
       "techniqueID": "T1486",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
@@ -1353,26 +1605,12 @@
       "techniqueID": "T1489",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1490",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1381,12 +1619,40 @@
       "techniqueID": "T1491",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1496",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1497",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1395,7 +1661,7 @@
       "techniqueID": "T1498",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1406,43 +1672,43 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1499",
+      "techniqueID": "T1529",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1542",
+      "techniqueID": "T1534",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1543",
+      "techniqueID": "T1539",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "APT29"
         }
       ],
       "showSubtechniques": false
@@ -1451,7 +1717,7 @@
       "techniqueID": "T1548",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1465,40 +1731,12 @@
       "techniqueID": "T1552",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
           "value": "APT29"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1553",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT29"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1554",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
         }
       ],
       "showSubtechniques": false
@@ -1507,7 +1745,7 @@
       "techniqueID": "T1556",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1518,24 +1756,10 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1557",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
       "techniqueID": "T1558",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1549,7 +1773,7 @@
       "techniqueID": "T1559",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1560,43 +1784,15 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1564",
+      "techniqueID": "T1569",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1567",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1568",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT29"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
@@ -1605,12 +1801,12 @@
       "techniqueID": "T1570",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
@@ -1619,68 +1815,12 @@
       "techniqueID": "T1571",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1572",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1590",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1592",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1593",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1689,21 +1829,21 @@
       "techniqueID": "T1594",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "APT41"
         }
       ],
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1596",
+      "techniqueID": "T1598",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1714,10 +1854,24 @@
       "showSubtechniques": false
     },
     {
+      "techniqueID": "T1599",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - APT41",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "APT41"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
       "techniqueID": "T1606",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1731,12 +1885,40 @@
       "techniqueID": "T1608",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - Sandworm Team",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
       "enabled": true,
       "metadata": [
         {
           "name": "Groups",
-          "value": "Sandworm Team"
+          "value": "Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1614",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1620",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group"
         }
       ],
       "showSubtechniques": false
@@ -1745,7 +1927,7 @@
       "techniqueID": "T1621",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1756,10 +1938,24 @@
       "showSubtechniques": false
     },
     {
+      "techniqueID": "T1622",
+      "score": 1,
+      "color": "#90EE90",
+      "comment": "LIGHT GREEN: used by 1/4 - Lazarus Group",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "Groups",
+          "value": "Lazarus Group"
+        }
+      ],
+      "showSubtechniques": false
+    },
+    {
       "techniqueID": "T1649",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1773,7 +1969,7 @@
       "techniqueID": "T1651",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1787,7 +1983,7 @@
       "techniqueID": "T1665",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
+      "comment": "LIGHT GREEN: used by 1/4 - APT29",
       "enabled": true,
       "metadata": [
         {
@@ -1801,35 +1997,7 @@
       "techniqueID": "T1669",
       "score": 1,
       "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT28"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1680",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT29",
-      "enabled": true,
-      "metadata": [
-        {
-          "name": "Groups",
-          "value": "APT29"
-        }
-      ],
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1684",
-      "score": 1,
-      "color": "#90EE90",
-      "comment": "LIGHT GREEN: used by 1/3 - APT28",
+      "comment": "LIGHT GREEN: used by 1/4 - APT28",
       "enabled": true,
       "metadata": [
         {
@@ -1845,22 +2013,7 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1008",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1010",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
       "techniqueID": "T1011",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1012",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -1875,12 +2028,12 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1046",
+      "techniqueID": "T1052",
       "enabled": false,
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1052",
+      "techniqueID": "T1072",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -1890,7 +2043,7 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1104",
+      "techniqueID": "T1095",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -1910,11 +2063,6 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1124",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
       "techniqueID": "T1125",
       "enabled": false,
       "showSubtechniques": false
@@ -1926,11 +2074,6 @@
     },
     {
       "techniqueID": "T1129",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1135",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -1950,22 +2093,12 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1197",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
       "techniqueID": "T1200",
       "enabled": false,
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1201",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1202",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -1995,7 +2128,7 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1220",
+      "techniqueID": "T1219",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -2005,7 +2138,7 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1480",
+      "techniqueID": "T1490",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -2015,12 +2148,7 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1496",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1497",
+      "techniqueID": "T1499",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -2040,22 +2168,12 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1529",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
       "techniqueID": "T1530",
       "enabled": false,
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1531",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1534",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -2075,6 +2193,11 @@
       "showSubtechniques": false
     },
     {
+      "techniqueID": "T1554",
+      "enabled": false,
+      "showSubtechniques": false
+    },
+    {
       "techniqueID": "T1563",
       "enabled": false,
       "showSubtechniques": false
@@ -2085,12 +2208,7 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1569",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1574",
+      "techniqueID": "T1572",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -2105,12 +2223,17 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1597",
+      "techniqueID": "T1590",
       "enabled": false,
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1599",
+      "techniqueID": "T1592",
+      "enabled": false,
+      "showSubtechniques": false
+    },
+    {
+      "techniqueID": "T1597",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -2155,27 +2278,12 @@
       "showSubtechniques": false
     },
     {
-      "techniqueID": "T1614",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
       "techniqueID": "T1615",
       "enabled": false,
       "showSubtechniques": false
     },
     {
       "techniqueID": "T1619",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1620",
-      "enabled": false,
-      "showSubtechniques": false
-    },
-    {
-      "techniqueID": "T1622",
       "enabled": false,
       "showSubtechniques": false
     },
@@ -4729,22 +4837,27 @@
     "colors": [
       "#90EE90",
       "#F4D35E",
+      "#F48C06",
       "#E5383B"
     ],
     "minValue": 1,
-    "maxValue": 3
+    "maxValue": 4
   },
   "legendItems": [
     {
-      "label": "RED - All selected groups",
+      "label": "RED - Used by ALL 4 groups",
       "color": "#E5383B"
     },
     {
-      "label": "YELLOW - Multiple groups",
+      "label": "ORANGE - Used by exactly 3 of 4 groups",
+      "color": "#F48C06"
+    },
+    {
+      "label": "YELLOW - Used by exactly 2 of 4 groups",
       "color": "#F4D35E"
     },
     {
-      "label": "LIGHT GREEN - Single group",
+      "label": "LIGHT GREEN - Used by only ONE group",
       "color": "#90EE90"
     }
   ],

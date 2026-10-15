@@ -2,7 +2,31 @@
 
 Pick a few APT groups and get a color-coded ATT&CK overlap map with no clicking around in the Navigator.
 
-The tool pulls the latest MITRE ATT&CK data for the **Enterprise** matrix (the default), or for **Mobile** or **ICS** if you ask for it. It finds every technique (T-code) the selected groups are documented as using, and colors each one by how many of the groups share it:
+The tool pulls the latest MITRE ATT&CK data for the **Enterprise** matrix (the default), or for **Mobile** or **ICS** if you ask for it. It finds every technique (T-code) the selected groups are documented as using, and colors each one by how many of the groups share it. The result is a layer you open in the real [ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/).
+
+## What it looks like
+
+APT28, APT29, Lazarus Group and APT41 in ATT&CK Navigator (dark theme), each with the tool's slide legend placed in an empty corner.
+
+### Parent techniques only
+
+Each T-code is colored by how many of the 4 groups use it or any of its sub-techniques.
+
+![ATT&CK Navigator, dark theme: parent-only overlap layer for APT28, APT29, Lazarus Group and APT41](docs/navigator_dark_parent_only.png)
+
+### Parent techniques and sub-techniques
+
+Sub-techniques expand beside their parents, and each one is colored by its own overlap. A parent can be red while some of its sub-techniques are only used by one group. Click the image for full size.
+
+![ATT&CK Navigator, dark theme: parent and sub-technique overlap layer for APT28, APT29, Lazarus Group and APT41](docs/navigator_dark_parent_and_sub.png)
+
+Close-up of the first tactics:
+
+![Close-up of the parent and sub-technique layer](docs/navigator_dark_parent_and_sub_detail.png)
+
+All files from this run (both layers, Excel, PDF and slide legends) are in [`examples/APT28_APT29_Lazarus_APT41`](examples/APT28_APT29_Lazarus_APT41).
+
+## Colors
 
 The color scale adapts to how many groups you pick. Light green always means one group. The more groups you pick, the more steps there are between "one group" and "all of them":
 
@@ -52,10 +76,10 @@ output/<timestamp>_<matrix>_<groups>/
 
 Clip the matrix from ATT&CK Navigator into PowerPoint, then insert the matching legend PNG (Insert → Pictures) on top of an empty corner. The legend uses **Franklin Gothic** (bold weight) if it is installed. The tool looks for Franklin Gothic Bold, then Demi, Heavy and Medium. If none is installed it uses the bundled [Libre Franklin](fonts/OFL.txt) (the open-source version of the same typeface). The console says which font it used.
 
-A full example for APT28, APT29 and Sandworm Team is in [`examples/`](examples/APT28_APT29_Sandworm).
+The PDF report for the same 4 groups (summary page and matrix):
 
-![Summary page](docs/summary.png)
-![Matrix with sub-techniques](docs/matrix_parent_and_sub.png)
+![PDF summary page](docs/summary.png)
+![PDF matrix with sub-techniques](docs/matrix_parent_and_sub.png)
 
 ## Quick start (Windows, no command line needed)
 
