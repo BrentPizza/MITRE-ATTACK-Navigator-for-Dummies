@@ -15,7 +15,9 @@ grows with the number of groups selected (see color_bands()):
             e.g. 6 groups:  green 1, yellow 2-3, orange 4, red 5, dark red 6
                  10 groups: green 1, yellow 2-4, orange 5-7, red 8-9, dark red 10
 
-Outputs (per run, in ./output/<timestamp>_<groups>/), produced twice:
+Outputs (per run, in ./output/<timestamp>_<matrix>_<groups>/):
+    *_legend_for-light-navigator.png / *_legend_for-dark-navigator.png -> slide legends
+and two output sets:
     1_Parent_Only/     parent T-codes only (sub-technique use rolled up into the parent)
     2_Parent_and_Sub/  parent T-codes plus the sub-techniques used, each with its own color
 each containing:

@@ -24,10 +24,12 @@ Only techniques that at least one selected group has used are shown. Everything 
 
 ## What you get
 
-Every run creates two sets of outputs:
+Every run creates two sets of outputs, plus a legend for slides:
 
 ```
-output/<timestamp>_<groups>/
+output/<timestamp>_<matrix>_<groups>/
+├── <groups>_legend_for-light-navigator.png   slide legend for a light Navigator screenshot
+├── <groups>_legend_for-dark-navigator.png    slide legend for a dark Navigator screenshot
 ├── 1_Parent_Only/       parent T-codes only (sub-technique use rolled up into the parent)
 │   ├── <groups>_parent-only_layer.json
 │   ├── <groups>_parent-only.xlsx
@@ -44,6 +46,11 @@ output/<timestamp>_<groups>/
   * **Technique Overlap**: one row per technique with a ✔ per group. Filterable, and sub-technique rows can be collapsed.
   * **Tactic Matrix**: a Navigator-style grid.
 * **`.pdf`**: a dark-themed report with a summary page, the color-coded matrix and a detail table.
+* **`_legend_for-*-navigator.png`**: a slide-ready legend table (merged **LEGEND** header, one color cell and label per overlap level, e.g. "All 4 groups", "3 of 4 groups"). Use the `light` file on a screenshot of the light Navigator theme and the `dark` file on the dark theme.
+
+### Slide legend
+
+Clip the matrix from ATT&CK Navigator into PowerPoint, then insert the matching legend PNG (Insert → Pictures) on top of an empty corner. The legend uses **Franklin Gothic** (bold weight) if it is installed. The tool looks for Franklin Gothic Bold, then Demi, Heavy and Medium. If none is installed it uses the bundled [Libre Franklin](fonts/OFL.txt) (the open-source version of the same typeface). The console says which font it used.
 
 A full example for APT28, APT29 and Sandworm Team is in [`examples/`](examples/APT28_APT29_Sandworm).
 
