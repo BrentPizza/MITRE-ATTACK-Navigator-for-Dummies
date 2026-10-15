@@ -4,8 +4,8 @@ MITRE ATT&CK Navigator for Dummies
 Pick a set of APT groups -> get the ATT&CK techniques (T-codes) they use,
 color-coded by how many of the selected groups overlap on each one:
 
-    RED          every selected group has used the technique
-    YELLOW       more than one (but not all) selected groups have used it
+    RED          3+ selected groups have used the technique (or both, when only 2 are selected)
+    YELLOW       exactly 2 selected groups have used it (only when 3+ groups are selected)
     LIGHT GREEN  only one selected group has used it
 
 Outputs (per run, in ./output/<timestamp>_<groups>/), produced twice:
@@ -48,10 +48,10 @@ DOMAINS = {
 }
 
 # Overlap levels: key -> (label, hex color, text color on that fill)
-RED, YELLOW, GREEN = "all", "multiple", "single"
+RED, YELLOW, GREEN = "high", "two", "single"
 LEVELS = {
-    RED: ("All selected groups", "#E5383B", "#FFFFFF"),
-    YELLOW: ("Multiple groups", "#F4D35E", "#1A1A1A"),
+    RED: ("3+ groups (or both of 2)", "#E5383B", "#FFFFFF"),
+    YELLOW: ("Exactly 2 groups", "#F4D35E", "#1A1A1A"),
     GREEN: ("Single group", "#90EE90", "#1A1A1A"),
 }
 LEVEL_ORDER = [RED, YELLOW, GREEN]
@@ -199,9 +199,16 @@ class Attack:
 # --------------------------------------------------------------------------- analysis
 
 def overlap_level(count, n):
-    if n > 1 and count == n:
+    # RED = 3+ groups, or 2 when only 2 groups are selected; YELLOW = exactly 2 (of 3+); GREEN = 1
+    if count >= 3 or (count == 2 and n == 2):
         return RED
-    return YELLOW if count > 1 else GREEN
+    return YELLOW if count == 2 else GREEN
+
+
+def level_meanings(n):
+    return {RED: "Used by BOTH selected groups" if n == 2 else "Used by 3 or more selected groups",
+            YELLOW: "Used by exactly 2 selected groups" if n > 2 else "(not used when only 2 groups are selected)",
+            GREEN: "Used by only ONE selected group"}
 
 
 def tid_key(tid):
@@ -287,7 +294,7 @@ def write_layer(path, attack, groups, rows, title, opts):
         "domain": attack.domain_name,
         "description": (f"{'Technique and sub-technique' if opts['subs'] else 'Parent technique'} overlap for: "
                         f"{', '.join(g['name'] + ' (' + g['id'] + ')' for g in groups)}. "
-                        f"RED = all {n} groups, YELLOW = 2+ groups, LIGHT GREEN = 1 group. "
+                        + ("RED = both groups, LIGHT GREEN = 1 group. " if n == 2 else "RED = 3+ groups, YELLOW = 2 groups, LIGHT GREEN = 1 group. ")
                         + ("Parents are colored by rolled-up use; sub-techniques by their own use. " if opts["subs"]
                            else "Sub-technique use is rolled up into the parent T-code. ") +
                         f"Campaigns {'included' if opts['campaigns'] else 'excluded'}; "
@@ -360,8 +367,7 @@ def write_excel(path, attack, groups, rows, per_group_counts, title, opts):
     for c, h in enumerate(["Color", "Meaning", "Technique count", "Sub-technique count"][:legend_cols], 1):
         cell = ws.cell(row=r0 + 1, column=c, value=h)
         cell.fill, cell.font, cell.border = HDR, HFONT, BORDER
-    meaning = {RED: f"Used by ALL {n} selected groups", YELLOW: f"Used by 2 to {n - 1} groups" if n > 2 else "Used by more than one (not all) groups",
-               GREEN: "Used by only ONE selected group"}
+    meaning = level_meanings(n)
     for i, k in enumerate(LEVEL_ORDER, r0 + 2):
         a = ws.cell(row=i, column=1, value=LEVEL_SHORT[k])
         a.fill, a.font = fill(LEVELS[k][1]), Font(bold=True, color=LEVELS[k][2].lstrip("#"))
@@ -543,8 +549,7 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
             c = self.canv
             gap = 14
             bw = (self.width - gap * 2) / 3
-            meaning = {RED: f"Used by ALL {n} selected groups", YELLOW: "Used by more than one, but not all",
-                       GREEN: "Used by only ONE selected group"}
+            meaning = level_meanings(n)
             for i, k in enumerate(LEVEL_ORDER):
                 x = i * (bw + gap)
                 c.setFillColor(PANEL)

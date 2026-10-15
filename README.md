@@ -6,8 +6,8 @@ The tool pulls the latest MITRE ATT&CK data. It finds every technique (T-code) t
 
 | Color | Meaning |
 |---|---|
-| 🟥 **RED** | Used by **all** selected groups |
-| 🟨 **YELLOW** | Used by more than one, but not all |
+| 🟥 **RED** | Used by **3 or more** selected groups (or **both**, if you only picked 2) |
+| 🟨 **YELLOW** | Used by **exactly 2** groups (only when you picked 3 or more) |
 | 🟩 **LIGHT GREEN** | Used by only **one** selected group |
 
 Only techniques that at least one selected group has used are shown. Everything else is left out, both in the reports and in the Navigator layer.
