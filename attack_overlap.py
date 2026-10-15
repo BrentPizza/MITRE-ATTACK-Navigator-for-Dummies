@@ -843,56 +843,36 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
     doc.build(story)
 
 
-def write_color_key(path, groups, label, dark=False):
-    """PNG color key (swatch | color | meaning) sized for pasting into a PowerPoint slide."""
+def short_meaning(lo, hi, n):
+    if lo == hi == n:
+        return "Both groups" if n == 2 else ("1 group" if n == 1 else f"All {n} groups")
+    if lo == hi:
+        return "1 group" if lo == 1 else f"{lo} of {n} groups"
+    return f"{lo}-{hi} of {n} groups"
+
+
+def write_legend(path):
+    """Minimal PNG legend for slides: gray background, "Legend", one colored cell per level."""
     import reportlab
     from PIL import Image, ImageDraw, ImageFont
     fdir = Path(reportlab.__file__).parent / "fonts"   # Vera ships with reportlab, so this works on any machine
-    font = lambda size, bold=False: ImageFont.truetype(str(fdir / ("VeraBd.ttf" if bold else "Vera.ttf")), size)
-    S = 2  # render at 2x so the key stays sharp when stretched across a slide
-    f_title, f_sub, f_name, f_text = font(46 * S, True), font(26 * S), font(32 * S, True), font(32 * S)
-    bg, fg, muted, line = (("#0D1117", "#E6EDF3", "#8B949E", "#30363D") if dark
-                           else ("#FFFFFF", "#1A1A1A", "#5F6B76", "#D0D7DE"))
+    f_title = ImageFont.truetype(str(fdir / "VeraBd.ttf"), 112)
+    f_cell = ImageFont.truetype(str(fdir / "Vera.ttf"), 88)
+    n = len(BANDS) and max(hi for _, _, hi in BANDS)
+    texts = [(lv, short_meaning(lo, hi, n)) for lv, lo, hi in BANDS]
 
-    n = len(groups)
-    meanings = level_meanings(n)
-    title = "Technique Overlap Key"
-    names = ", ".join(g["name"] for g in groups)
-    sub_lines, cur = [], f"{label} matrix | {n} group{'s' if n != 1 else ''}: "
-    for word in names.split(" "):   # wrap the group list
-        if f_sub.getlength(cur + word) > 1100 * S and cur.strip():
-            sub_lines.append(cur.rstrip())
-            cur = ""
-        cur += word + " "
-    sub_lines.append(cur.rstrip())
-
-    pad, sw_w, sw_h, row_h, gap = 56 * S, 110 * S, 56 * S, 84 * S, 30 * S
-    name_w = max(f_name.getlength(LEVEL_SHORT[k]) for k in LEVEL_ORDER)
-    text_w = max(f_text.getlength(meanings[k]) for k in LEVEL_ORDER)
-    width = int(max(pad * 2 + sw_w + gap + name_w + gap + text_w, pad * 2 + f_title.getlength(title),
-                    pad * 2 + max(f_sub.getlength(l) for l in sub_lines)))
-    head_h = (62 + 38 * len(sub_lines) + 30) * S
-    height = pad + head_h + row_h * len(LEVEL_ORDER) + pad - 14 * S
-
-    img = Image.new("RGB", (width, height), bg)
+    pad, cell_h, gap = 80, 192, 24
+    cell_w = int(max(f_cell.getlength(t) for _, t in texts)) + 160
+    width = max(cell_w, int(f_title.getlength("Legend"))) + 2 * pad
+    height = pad + 140 + 48 + len(texts) * (cell_h + gap) - gap + pad
+    img = Image.new("RGB", (width, height), "#D9D9D9")
     d = ImageDraw.Draw(img)
-    d.rectangle([0, 0, width - 1, height - 1], outline=line, width=3 * S)
-    y = pad
-    d.text((pad, y), title, font=f_title, fill=fg)
-    y += 62 * S
-    for l in sub_lines:
-        d.text((pad, y), l, font=f_sub, fill=muted)
-        y += 38 * S
-    y += 30 * S
-    for i, k in enumerate(LEVEL_ORDER):
-        top = y + i * row_h
-        if i:
-            d.line([pad, top - 14 * S, width - pad, top - 14 * S], fill=line, width=2 * S)
-        d.rounded_rectangle([pad, top, pad + sw_w, top + sw_h], radius=10 * S, fill=LEVELS[k][1],
-                            outline=line if not dark else None, width=2 * S)
-        ty = top + (sw_h - 32 * S) // 2 - 2 * S
-        d.text((pad + sw_w + gap, ty), LEVEL_SHORT[k], font=f_name, fill=fg)
-        d.text((pad + sw_w + gap + name_w + gap, ty), meanings[k], font=f_text, fill=fg)
+    d.text((pad, pad), "Legend", font=f_title, fill="#1A1A1A")
+    y = pad + 140 + 48
+    for lv, t in texts:
+        d.rectangle([pad, y, pad + cell_w, y + cell_h], fill=LEVELS[lv][1])
+        d.text((pad + cell_w / 2, y + cell_h / 2), t, font=f_cell, fill=LEVELS[lv][2], anchor="mm")
+        y += cell_h + gap
     img.save(path, dpi=(300, 300))
 
 
@@ -1073,9 +1053,8 @@ def main():
                 "subs": ("2_Parent_and_Sub", "parent-and-sub", " (Parent + Sub-techniques)", rows)}
     chosen = list(variants) if args.mode == "both" else [args.mode]
     out.mkdir(parents=True, exist_ok=True)
-    keys = [out / f"{base}_color-key_{tone}.png" for tone in ("light", "dark")]
-    for kp, dark in zip(keys, (False, True)):
-        write_color_key(kp, groups, label, dark)
+    legend_p = out / f"{base}_legend.png"
+    write_legend(legend_p)
     for key in chosen:
         folder, suffix, title_suffix, vrows = variants[key]
         vout = out / folder
@@ -1092,9 +1071,7 @@ def main():
         print(f"  Navigator layer : {layer_p}")
         print(f"  Excel workbook  : {xlsx_p}")
         print(f"  PDF report      : {pdf_p}")
-    print("\n[Color key for slides]")
-    for kp in keys:
-        print(f"  PNG             : {kp}")
+    print(f"\n[Legend for slides]\n  PNG             : {legend_p}")
     print("\nTip: open https://mitre-attack.github.io/attack-navigator/ -> Open Existing Layer -> Upload from local -> pick the _layer.json")
 
     if is_interactive and sys.platform == "win32":
