@@ -87,14 +87,14 @@ The PDF report for the same 4 groups (summary page and matrix):
 
 ## Quick start
 
-**All you need is Python 3.10 or newer.** Nothing gets installed. The ATT&CK data ships in `data/`, and `--offline` runs on plain Python plus only the libraries already on the machine (see [Offline use](#offline-use)).
+**All you need is Python 3.10 or newer.** The tool never installs anything. The ATT&CK data ships in `data/`. Excel, PDF and PNG outputs are added automatically when their library is already on the machine (see [Requirements](#requirements)).
 
 1. Download or clone this repo.
 2. Open a terminal (Command Prompt or PowerShell) in the repo folder and run:
    ```
    python attack_overlap.py --offline
    ```
-   (`--offline` never touches the network and never loads anything that isn't already installed.)
+   (`--offline` guarantees the tool never touches the network.)
 3. Pick the matrix: just press **Enter** for Enterprise, or type `mobile` or `ics`.
 4. Type your groups, separated by commas. You can use names, aliases or G-IDs:
    ```
@@ -132,30 +132,14 @@ Names don't need exact spacing or capitals (`AquaticPanda` works). Not every gro
 | `--no-campaigns` | ignore techniques from campaigns attributed to the groups (included by default, same as attack.mitre.org) |
 | `--include-software` / `--no-software` | count (or don't count) techniques of the malware and tools each group uses. Off by default for Enterprise, on by default for Mobile and ICS, where ATT&CK links most groups to techniques through their malware |
 | `--update` | re-download the latest ATT&CK data before running |
-| `--offline` | never use the network and use only libraries already installed: ATT&CK data comes from `data/`, and outputs whose library is missing are skipped with a note |
+| `--offline` | never use the network; run only from the ATT&CK data bundled in `data/` |
 | `--list` / `--search TEXT` | list or search the groups in the chosen matrix, then exit |
 | `--title "..."` | custom report title |
 | `--out DIR` | custom output folder |
 
-## Offline use
+## Requirements
 
-The repo includes the MITRE ATT&CK data for all three matrices, so it runs on an air-gapped or offline machine:
-
-```
-data/
-├── enterprise-attack.json
-├── mobile-attack.json
-└── ics-attack.json
-```
-
-Add `--offline` to any command. The tool then never touches the network and **does not install or load any library that isn't already installed on the machine**. It does not use the bundled copies in `vendor/` either:
-
-```bash
-python attack_overlap.py --offline APT28 APT29 "Lazarus Group"
-python attack_overlap.py --offline mobile APT28 APT-C-23
-```
-
-What you get depends only on what the machine already has:
+Python 3.10 or newer is the only requirement. The tool never installs anything and doesn't bundle any third-party code. It uses a library only if it's already installed on the machine, and skips any output whose library is missing:
 
 | Output | Needs | If missing |
 |---|---|---|
@@ -173,23 +157,29 @@ NOTE: reportlab library needed for PDF report - cannot deliver PDF report
 NOTE: Pillow library needed for PNG slide legend - cannot deliver PNG slide legend (SVG slide legend still provided)
 ```
 
-Whatever is delivered is identical to a full run. Every run also prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`.
+Whatever is delivered is identical to a run with everything installed. To get every output on a machine where you're allowed to install packages, run `pip install -r requirements.txt`.
+
+## Offline use
+
+The repo includes the MITRE ATT&CK data for all three matrices, so it runs on an air-gapped or offline machine:
+
+```
+data/
+├── enterprise-attack.json
+├── mobile-attack.json
+└── ics-attack.json
+```
+
+Add `--offline` to any command to guarantee the tool never touches the network:
+
+```bash
+python attack_overlap.py --offline APT28 APT29 "Lazarus Group"
+python attack_overlap.py --offline mobile APT28 APT-C-23
+```
+
+Every run prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`. The `fonts/` folder holds the PNG legend's fallback font, so nothing else is downloaded either.
 
 To refresh the bundled data, run once on a machine with internet using `--update`, then copy the updated `data/` folder across.
-
-## Bundled libraries (normal runs only)
-
-Without `--offline`, the tool can still produce the Excel and PDF outputs on a machine that doesn't have the libraries installed. It does this with **`vendor/`**, which holds plain, readable Python source (no compiled code) for [openpyxl](https://openpyxl.readthedocs.io/) 3.1.5 (MIT license) and its helper et_xmlfile 2.0.0 (MIT), and [reportlab](https://www.reportlab.com/) 5.0.1 (BSD license). Each library's license file is inside its `*.dist-info` folder. Installed copies always take priority, and **`--offline` never uses `vendor/`**.
-
-* **Pillow** contains compiled code, so it is never bundled. reportlab loads Pillow at startup but only uses it to embed pictures, which these PDFs never do. When Pillow is missing, `vendor/_no_pillow/` gives reportlab a small stand-in so the PDF can still be built.
-* **`data/`** holds the ATT&CK data and **`fonts/`** the PNG legend font, so nothing is downloaded.
-
-Tested on Python 3.11, 3.12 and 3.13 with network access blocked:
-* with no packages installed, using `--offline` (layers and SVG legends, plus the notes)
-* with no packages installed, without `--offline` (everything except the PNG legends)
-* with everything installed
-
-Whatever is delivered is identical to a full install.
 
 ## Loading the layer in ATT&CK Navigator
 

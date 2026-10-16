@@ -55,17 +55,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE / "data"
 
-VENDOR_DIR = HERE / "vendor"   # pure-Python copies of openpyxl and reportlab; never used with --offline (see main)
-
-# Pillow is optional (it is compiled code, which locked-down workstations may block). Without it every output
-# is still produced; the slide legend is written as SVG only, and reportlab gets a stand-in for the PIL module
-# it imports at load time but only uses to embed pictures (the PDFs here have none).
+# Third-party libraries are optional and never installed by this tool: openpyxl (Excel), reportlab (PDF) and
+# Pillow (PNG legend) are used only if already installed; anything missing is skipped with a note (see main).
 try:
     import PIL  # noqa: F401
     HAVE_PILLOW = True
 except ImportError:
     HAVE_PILLOW = False
-    sys.path.append(str(HERE / "vendor" / "_no_pillow"))
 OUT_DIR = HERE / "output"
 
 DOMAINS = {  # matrix -> (Navigator domain / data file name, download URL)
@@ -1138,10 +1134,6 @@ def main():
 
     if args.offline and args.update:
         ap.error("--offline and --update cannot be used together")
-    # --offline uses only what is already installed on this machine. Otherwise the bundled vendor/ copies fill in
-    # for openpyxl/reportlab (appended, so installed copies still take priority).
-    if not args.offline and VENDOR_DIR.is_dir():
-        sys.path.append(str(VENDOR_DIR))
     bundle, domain_name, data_path = load_bundle(domain, args.update, args.offline)
     attack = Attack(bundle, domain_name)
     print(f"ATT&CK {label} data: {data_path.relative_to(HERE).as_posix()} (MITRE data as of {attack.data_modified})"
@@ -1242,8 +1234,7 @@ def main():
         print(f"  {lp.suffix[1:].upper():<15} : {lp}")
     if notes:
         note_p = out / "NOTE_outputs_not_delivered.txt"
-        note_p.write_text("Some outputs were not created because a Python library is not installed on this machine"
-                          + (" (--offline uses installed libraries only):" if args.offline else ":") + "\n\n"
+        note_p.write_text("Some outputs were not created because a Python library is not installed on this machine:\n\n"
                           + "\n".join(f"- {n}" for n in notes) + "\n", encoding="utf-8")
         print("\n" + "\n".join(f"NOTE: {n}" for n in notes))
         print(f"      (also saved to {note_p.name} in the output folder)")

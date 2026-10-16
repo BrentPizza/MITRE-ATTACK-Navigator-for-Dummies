@@ -1,6 +1,5 @@
-# Nothing needs installing for a normal run: openpyxl and reportlab ship as pure-Python source in vendor/.
-# With --offline, only libraries already installed are used; missing ones skip their output with a note:
-#   openpyxl -> Excel workbook, reportlab -> PDF report, pillow -> PNG slide legend.
-openpyxl>=3.1
-reportlab>=4.0
-pillow>=10.0
+# All optional. The tool runs on plain Python 3.10+ and never installs anything itself.
+# Each library adds one output when installed; without it that output is skipped with a note:
+openpyxl>=3.1     # Excel workbook
+reportlab>=4.0    # PDF report
+pillow>=10.0      # PNG slide legend (the SVG legend never needs it)
