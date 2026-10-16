@@ -87,20 +87,20 @@ The PDF report for the same 4 groups (summary page and matrix):
 
 ## Quick start
 
-**All you need is Python 3.10 or newer.** Nothing has to be installed: the two libraries the tool uses are bundled as plain Python source (see [Nothing to install](#nothing-to-install)), and so is the ATT&CK data.
+**All you need is Python 3.10 or newer.** Nothing gets installed. The ATT&CK data ships in `data/`, and `--offline` runs on plain Python plus only the libraries already on the machine (see [Offline use](#offline-use)).
 
 1. Download or clone this repo.
 2. Open a terminal (Command Prompt or PowerShell) in the repo folder and run:
    ```
    python attack_overlap.py --offline
    ```
-   (`--offline` is optional. It guarantees the tool never touches the network.)
+   (`--offline` never touches the network and never loads anything that isn't already installed.)
 3. Pick the matrix: just press **Enter** for Enterprise, or type `mobile` or `ics`.
-5. Type your groups, separated by commas. You can use names, aliases or G-IDs:
+4. Type your groups, separated by commas. You can use names, aliases or G-IDs:
    ```
    Groups> APT28, Cozy Bear, G0034
    ```
-6. Confirm. The output folder opens automatically.
+5. Confirm. The output folder opens automatically.
 
 On a personal PC you can also double-click `Run ATTACK Overlap.bat`, which does the same thing.
 
@@ -132,7 +132,7 @@ Names don't need exact spacing or capitals (`AquaticPanda` works). Not every gro
 | `--no-campaigns` | ignore techniques from campaigns attributed to the groups (included by default, same as attack.mitre.org) |
 | `--include-software` / `--no-software` | count (or don't count) techniques of the malware and tools each group uses. Off by default for Enterprise, on by default for Mobile and ICS, where ATT&CK links most groups to techniques through their malware |
 | `--update` | re-download the latest ATT&CK data before running |
-| `--offline` | never use the network; run only from the ATT&CK data bundled in `data/` |
+| `--offline` | never use the network and use only libraries already installed: ATT&CK data comes from `data/`, and outputs whose library is missing are skipped with a note |
 | `--list` / `--search TEXT` | list or search the groups in the chosen matrix, then exit |
 | `--title "..."` | custom report title |
 | `--out DIR` | custom output folder |
@@ -148,26 +148,48 @@ data/
 └── ics-attack.json
 ```
 
-Add `--offline` to any command to guarantee the tool never touches the network:
+Add `--offline` to any command. The tool then never touches the network and **does not install or load any library that isn't already installed on the machine**. It does not use the bundled copies in `vendor/` either:
 
 ```bash
 python attack_overlap.py --offline APT28 APT29 "Lazarus Group"
 python attack_overlap.py --offline mobile APT28 APT-C-23
 ```
 
-Offline runs produce exactly the same outputs as online runs: both Navigator layers, the Excel workbooks, the PDFs and the slide legends. Every run prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`.
+What you get depends only on what the machine already has:
+
+| Output | Needs | If missing |
+|---|---|---|
+| Navigator layers (`_layer.json`, both sets) | Python only | always delivered |
+| SVG slide legends | Python only | always delivered |
+| Excel workbooks (`.xlsx`) | `openpyxl` | skipped |
+| PDF reports (`.pdf`) | `reportlab` | skipped |
+| PNG slide legends | `Pillow` | skipped (SVG still delivered) |
+
+Each skipped output is reported on screen and in `NOTE_outputs_not_delivered.txt` in the output folder, e.g.:
+
+```
+NOTE: openpyxl library needed for Excel workbook - cannot deliver Excel workbook
+NOTE: reportlab library needed for PDF report - cannot deliver PDF report
+NOTE: Pillow library needed for PNG slide legend - cannot deliver PNG slide legend (SVG slide legend still provided)
+```
+
+Whatever is delivered is identical to a full run. Every run also prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`.
 
 To refresh the bundled data, run once on a machine with internet using `--update`, then copy the updated `data/` folder across.
 
-## Nothing to install
+## Bundled libraries (normal runs only)
 
-The tool runs on a standard Python 3.10+ install with **no `pip install`, no executables and no batch files**. That makes it suitable for locked-down workstations that only allow Python scripts.
+Without `--offline`, the tool can still produce the Excel and PDF outputs on a machine that doesn't have the libraries installed. It does this with **`vendor/`**, which holds plain, readable Python source (no compiled code) for [openpyxl](https://openpyxl.readthedocs.io/) 3.1.5 (MIT license) and its helper et_xmlfile 2.0.0 (MIT), and [reportlab](https://www.reportlab.com/) 5.0.1 (BSD license). Each library's license file is inside its `*.dist-info` folder. Installed copies always take priority, and **`--offline` never uses `vendor/`**.
 
-* **`vendor/`** holds the two libraries the tool uses, as plain, readable Python source (no compiled code): [openpyxl](https://openpyxl.readthedocs.io/) 3.1.5 (MIT license) and its helper et_xmlfile 2.0.0 (MIT), which write the Excel workbook, and [reportlab](https://www.reportlab.com/) 5.0.1 (BSD license), which writes the PDF. Each library's license file is inside its `*.dist-info` folder. The script loads them from `vendor/` automatically. If the workstation already has these libraries installed, the installed copies are used instead.
-* **Pillow is optional.** Pillow contains compiled code, so it isn't bundled. Without it, every output is still produced and the slide legend comes out as SVG only. reportlab normally loads Pillow at startup but only uses it to embed pictures, which these PDFs never do, so `vendor/_no_pillow/` gives it a small stand-in. That stand-in is only used when Pillow is missing. If Pillow is installed, the tool also writes PNG copies of the legend.
-* **`data/`** holds the ATT&CK data and **`fonts/`** the legend font, so nothing is downloaded.
+* **Pillow** contains compiled code, so it is never bundled. reportlab loads Pillow at startup but only uses it to embed pictures, which these PDFs never do. When Pillow is missing, `vendor/_no_pillow/` gives reportlab a small stand-in so the PDF can still be built.
+* **`data/`** holds the ATT&CK data and **`fonts/`** the PNG legend font, so nothing is downloaded.
 
-Tested on Python 3.11, 3.12 and 3.13 with no packages installed and network access blocked. The Navigator layers, Excel workbooks and PDFs come out identical to a normal install.
+Tested on Python 3.11, 3.12 and 3.13 with network access blocked:
+* with no packages installed, using `--offline` (layers and SVG legends, plus the notes)
+* with no packages installed, without `--offline` (everything except the PNG legends)
+* with everything installed
+
+Whatever is delivered is identical to a full install.
 
 ## Loading the layer in ATT&CK Navigator
 

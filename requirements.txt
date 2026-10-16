@@ -1,3 +1,6 @@
-# Nothing needs installing: openpyxl and reportlab ship as pure-Python source in vendor/.
-# Optional: Pillow adds PNG copies of the slide legend (the SVG legend is always produced).
+# Nothing needs installing for a normal run: openpyxl and reportlab ship as pure-Python source in vendor/.
+# With --offline, only libraries already installed are used; missing ones skip their output with a note:
+#   openpyxl -> Excel workbook, reportlab -> PDF report, pillow -> PNG slide legend.
+openpyxl>=3.1
+reportlab>=4.0
 pillow>=10.0

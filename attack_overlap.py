@@ -55,10 +55,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE / "data"
 
-# openpyxl and reportlab ship in vendor/ as plain pure-Python source, so the tool runs on a stock Python
-# with nothing installed. Appended (not prepended) so copies already installed on the machine take priority.
-if (HERE / "vendor").is_dir():
-    sys.path.append(str(HERE / "vendor"))
+VENDOR_DIR = HERE / "vendor"   # pure-Python copies of openpyxl and reportlab; never used with --offline (see main)
 
 # Pillow is optional (it is compiled code, which locked-down workstations may block). Without it every output
 # is still produced; the slide legend is written as SVG only, and reportlab gets a stand-in for the PIL module
@@ -871,9 +868,8 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
 
 
 _LEGEND_FONT = None
-# Libre Franklin: open-source cut of Franklin Gothic (OFL). The variable font renders the PNG legend (at its Bold
-# instance); the static Bold copy is what reportlab can read to measure text for the pure-Python SVG legend.
-BUNDLED_FONT = HERE / "fonts" / "LibreFranklin-Bold.ttf"
+# Libre Franklin: open-source cut of Franklin Gothic (OFL). The variable font renders the PNG legend at its Bold
+# instance; the SVG legend uses the Bold metrics below.
 BUNDLED_VARIABLE_FONT = HERE / "fonts" / "LibreFranklin-VariableFont.ttf"
 SVG_FONT_FAMILY = "'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif"
 
@@ -929,6 +925,20 @@ LEGEND_THEMES = {   # HEAD, CELL, TXT, LINE, EDGE
 }
 HEAD_PT, CELL_PT = 68, 54
 
+# Advance widths of the bundled Libre Franklin Bold (units per 1000 em) for printable ASCII plus the en dash, so the
+# SVG legend can be laid out with plain Python. Cap height 742/1000 is used to center text vertically.
+_LF_BOLD_CHARS = "".join(chr(c) for c in range(32, 127)) + "\u2013"
+_LF_BOLD_WIDTHS = dict(zip(_LF_BOLD_CHARS, map(int, (
+    "206,264,469,603,655,944,838,248,314,314,465,583,253,380,251,365,708,509,644,667,689,676,685,619,683,684,251,259,"
+    "577,583,577,537,834,771,723,725,751,654,631,752,751,315,447,744,627,949,759,774,715,775,722,677,681,721,733,1084,"
+    "729,735,681,316,365,316,475,544,306,563,609,551,609,586,402,633,597,265,265,604,266,919,596,599,609,609,426,530,"
+    "432,592,573,818,591,566,519,366,251,366,609,584").split(","))))
+_LF_BOLD_CAP_HEIGHT = 742
+
+
+def lf_bold_width(text, size):
+    return sum(_LF_BOLD_WIDTHS.get(ch, 600) for ch in text) * size / 1000
+
 
 def legend_layout(groups, measure):
     """Shared geometry for the PNG and SVG legends. measure(text, size) -> width in px."""
@@ -970,19 +980,14 @@ def write_legend_png(path, groups, theme):
 
 
 def write_legend_svg(path, groups, theme):
-    """Slide legend as SVG, pure Python (no Pillow). Same table as the PNG; vector, so it stays sharp at any size.
+    """Slide legend as SVG, standard library only. Same table as the PNG; vector, so it stays sharp at any size.
 
-    Text uses the workstation's Franklin Gothic when PowerPoint renders it. Widths are measured with the bundled
-    Libre Franklin Bold plus 8% headroom, since installed Franklin Gothic cuts run slightly wider.
+    Text uses the workstation's Franklin Gothic when PowerPoint renders it. Widths come from the bundled Libre
+    Franklin Bold metrics plus 8% headroom, since installed Franklin Gothic cuts run slightly wider.
     """
     from xml.sax.saxutils import escape
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    if "LibreFranklin-Bold" not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont("LibreFranklin-Bold", str(BUNDLED_FONT)))
-    face = pdfmetrics.getFont("LibreFranklin-Bold").face
-    cap = getattr(face, "capHeight", 700) / 1000   # cap height as a fraction of the font size, to center text
-    L = legend_layout(groups, lambda t, sz: pdfmetrics.stringWidth(t, "LibreFranklin-Bold", sz) * 1.08)
+    cap = _LF_BOLD_CAP_HEIGHT / 1000   # cap height as a fraction of the font size, to center text
+    L = legend_layout(groups, lambda t, sz: lf_bold_width(t, sz) * 1.08)
     HEAD, CELL, TXT, LINE, EDGE = LEGEND_THEMES[theme]
     x0, x1, x2, edge, width, height = L["x0"], L["x1"], L["x2"], L["edge"], L["width"], L["height"]
     base = lambda cy, sz: round(cy + cap * sz / 2, 1)   # baseline that vertically centers capital letters on cy
@@ -1133,6 +1138,10 @@ def main():
 
     if args.offline and args.update:
         ap.error("--offline and --update cannot be used together")
+    # --offline uses only what is already installed on this machine. Otherwise the bundled vendor/ copies fill in
+    # for openpyxl/reportlab (appended, so installed copies still take priority).
+    if not args.offline and VENDOR_DIR.is_dir():
+        sys.path.append(str(VENDOR_DIR))
     bundle, domain_name, data_path = load_bundle(domain, args.update, args.offline)
     attack = Attack(bundle, domain_name)
     print(f"ATT&CK {label} data: {data_path.relative_to(HERE).as_posix()} (MITRE data as of {attack.data_modified})"
@@ -1189,6 +1198,20 @@ def main():
                 "subs": ("2_Parent_and_Sub", "parent-and-sub", " (Parent + Sub-techniques)", rows)}
     chosen = list(variants) if args.mode == "both" else [args.mode]
     out.mkdir(parents=True, exist_ok=True)
+
+    # Outputs that need a third-party library are skipped (with a note) when that library is not available.
+    def available(module):
+        try:
+            __import__(module)
+            return True
+        except ImportError:
+            return False
+    have_excel, have_pdf = available("openpyxl"), available("reportlab.platypus")
+    notes = [f"{lib} library needed for {what} - cannot deliver {what}{extra}" for ok, lib, what, extra in (
+        (have_excel, "openpyxl", "Excel workbook", ""),
+        (have_pdf, "reportlab", "PDF report", ""),
+        (HAVE_PILLOW, "Pillow", "PNG slide legend", " (SVG slide legend still provided)")) if not ok]
+
     legends = []
     for theme in ("light", "dark"):
         legends.append(out / f"{base}_legend_for-{theme}-navigator.svg")
@@ -1206,16 +1229,24 @@ def main():
         xlsx_p = vout / f"{base}_{suffix}.xlsx"
         pdf_p = vout / f"{base}_{suffix}.pdf"
         write_layer(layer_p, attack, groups, vrows, vtitle, vopts)
-        write_excel(xlsx_p, attack, groups, vrows, per_group_counts, vtitle, vopts)
-        write_pdf(pdf_p, attack, groups, vrows, per_group_counts, vtitle, vopts)
+        if have_excel:
+            write_excel(xlsx_p, attack, groups, vrows, per_group_counts, vtitle, vopts)
+        if have_pdf:
+            write_pdf(pdf_p, attack, groups, vrows, per_group_counts, vtitle, vopts)
         print(f"\n[{folder}]")
         print(f"  Navigator layer : {layer_p}")
-        print(f"  Excel workbook  : {xlsx_p}")
-        print(f"  PDF report      : {pdf_p}")
-    print("\n[Slide legend]  " + (f"PNG font: {legend_font_source()[2]}" if HAVE_PILLOW
-                                   else "SVG only (Pillow not installed, so no PNG copies)"))
+        print(f"  Excel workbook  : {xlsx_p if have_excel else 'not delivered (openpyxl library not installed)'}")
+        print(f"  PDF report      : {pdf_p if have_pdf else 'not delivered (reportlab library not installed)'}")
+    print("\n[Slide legend]" + (f"  PNG font: {legend_font_source()[2]}" if HAVE_PILLOW else ""))
     for lp in legends:
         print(f"  {lp.suffix[1:].upper():<15} : {lp}")
+    if notes:
+        note_p = out / "NOTE_outputs_not_delivered.txt"
+        note_p.write_text("Some outputs were not created because a Python library is not installed on this machine"
+                          + (" (--offline uses installed libraries only):" if args.offline else ":") + "\n\n"
+                          + "\n".join(f"- {n}" for n in notes) + "\n", encoding="utf-8")
+        print("\n" + "\n".join(f"NOTE: {n}" for n in notes))
+        print(f"      (also saved to {note_p.name} in the output folder)")
     print("\nTip: open https://mitre-attack.github.io/attack-navigator/ -> Open Existing Layer -> Upload from local -> pick the _layer.json")
 
     if is_interactive and sys.platform == "win32":
