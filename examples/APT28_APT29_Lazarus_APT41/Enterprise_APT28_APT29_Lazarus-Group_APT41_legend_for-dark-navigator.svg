@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="641" height="584" viewBox="0 0 641 584">
+<rect x="0" y="0" width="641" height="584" fill="#BFBFBF"/>
+<rect x="6" y="6" width="629" height="124" fill="#3F3F3F"/>
+<text x="320.5" y="93.2" font-family="'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif" font-weight="bold" font-size="68" fill="#FFFFFF" text-anchor="middle">LEGEND</text>
+<rect x="6" y="130" width="170" height="112" fill="#E5383B"/>
+<rect x="176" y="130" width="459" height="112" fill="#2B2B2B"/>
+<line x1="6" y1="130" x2="635" y2="130" stroke="#7F7F7F" stroke-width="3"/>
+<text x="220" y="206.0" font-family="'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif" font-weight="bold" font-size="54" fill="#FFFFFF">All 4 groups</text>
+<rect x="6" y="242" width="170" height="112" fill="#F48C06"/>
+<rect x="176" y="242" width="459" height="112" fill="#2B2B2B"/>
+<line x1="6" y1="242" x2="635" y2="242" stroke="#7F7F7F" stroke-width="3"/>
+<text x="220" y="318.0" font-family="'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif" font-weight="bold" font-size="54" fill="#FFFFFF">3 of 4 groups</text>
+<rect x="6" y="354" width="170" height="112" fill="#F4D35E"/>
+<rect x="176" y="354" width="459" height="112" fill="#2B2B2B"/>
+<line x1="6" y1="354" x2="635" y2="354" stroke="#7F7F7F" stroke-width="3"/>
+<text x="220" y="430.0" font-family="'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif" font-weight="bold" font-size="54" fill="#FFFFFF">2 of 4 groups</text>
+<rect x="6" y="466" width="170" height="112" fill="#90EE90"/>
+<rect x="176" y="466" width="459" height="112" fill="#2B2B2B"/>
+<line x1="6" y1="466" x2="635" y2="466" stroke="#7F7F7F" stroke-width="3"/>
+<text x="220" y="542.0" font-family="'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif" font-weight="bold" font-size="54" fill="#FFFFFF">1 group</text>
+<line x1="176" y1="130" x2="176" y2="578" stroke="#7F7F7F" stroke-width="3"/>
+</svg>

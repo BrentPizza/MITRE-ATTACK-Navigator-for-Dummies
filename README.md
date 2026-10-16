@@ -52,8 +52,9 @@ Every run creates two sets of outputs, plus a legend for slides:
 
 ```
 output/<timestamp>_<matrix>_<groups>/
-├── <groups>_legend_for-light-navigator.png   slide legend for a light Navigator screenshot
-├── <groups>_legend_for-dark-navigator.png    slide legend for a dark Navigator screenshot
+├── <groups>_legend_for-light-navigator.svg   slide legend for a light Navigator screenshot
+├── <groups>_legend_for-dark-navigator.svg    slide legend for a dark Navigator screenshot
+├── (.png copies of both legends, if Pillow is installed)
 ├── 1_Parent_Only/       parent T-codes only (sub-technique use rolled up into the parent)
 │   ├── <groups>_parent-only_layer.json
 │   ├── <groups>_parent-only.xlsx
@@ -70,28 +71,38 @@ output/<timestamp>_<matrix>_<groups>/
   * **Technique Overlap**: one row per technique with a ✔ per group. Filterable, and sub-technique rows can be collapsed.
   * **Tactic Matrix**: a Navigator-style grid.
 * **`.pdf`**: a dark-themed report with a summary page, the color-coded matrix and a detail table.
-* **`_legend_for-*-navigator.png`**: a slide-ready legend table (merged **LEGEND** header, one color cell and label per overlap level, e.g. "All 4 groups", "3 of 4 groups"). Use the `light` file on a screenshot of the light Navigator theme and the `dark` file on the dark theme.
+* **`_legend_for-*-navigator.svg`** (and `.png`): a slide-ready legend table (merged **LEGEND** header, one color cell and label per overlap level, e.g. "All 4 groups", "3 of 4 groups"). Use the `light` file on a screenshot of the light Navigator theme and the `dark` file on the dark theme.
 
 ### Slide legend
 
-Clip the matrix from ATT&CK Navigator into PowerPoint, then insert the matching legend PNG (Insert → Pictures) on top of an empty corner. The legend uses **Franklin Gothic** (bold weight) if it is installed. The tool looks for Franklin Gothic Bold, then Demi, Heavy and Medium. If none is installed it uses the bundled [Libre Franklin](fonts/OFL.txt) (the open-source version of the same typeface). The console says which font it used.
+Clip the matrix from ATT&CK Navigator into PowerPoint, then insert the matching legend (Insert → Pictures) on top of an empty corner.
+
+* **SVG** (always produced): a vector image, so it stays sharp at any size. PowerPoint draws its text in **Franklin Gothic Medium, bold** from the workstation's own fonts. Inserting SVG needs PowerPoint 2019, 2021 or Microsoft 365.
+* **PNG** (only when the optional Pillow library is installed): for older PowerPoint versions. It uses Franklin Gothic (Bold, then Demi, Heavy or Medium) if installed, otherwise the bundled [Libre Franklin](fonts/OFL.txt), the open-source version of the same typeface. The console says which font it used.
 
 The PDF report for the same 4 groups (summary page and matrix):
 
 ![PDF summary page](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/summary.png)
 ![PDF matrix with sub-techniques](https://raw.githubusercontent.com/BrentPizza/MITRE-ATTACK-Navigator-for-Dummies/main/docs/matrix_parent_and_sub.png)
 
-## Quick start (Windows, no command line needed)
+## Quick start
 
-1. Install [Python 3.10+](https://www.python.org/downloads/) and tick **"Add python.exe to PATH"**.
-2. Download or clone this repo.
-3. Double-click **`Run ATTACK Overlap.bat`**.
-4. Pick the matrix: just press **Enter** for Enterprise, or type `mobile` or `ics`.
+**All you need is Python 3.10 or newer.** Nothing has to be installed: the two libraries the tool uses are bundled as plain Python source (see [Nothing to install](#nothing-to-install)), and so is the ATT&CK data.
+
+1. Download or clone this repo.
+2. Open a terminal (Command Prompt or PowerShell) in the repo folder and run:
+   ```
+   python attack_overlap.py --offline
+   ```
+   (`--offline` is optional. It guarantees the tool never touches the network.)
+3. Pick the matrix: just press **Enter** for Enterprise, or type `mobile` or `ics`.
 5. Type your groups, separated by commas. You can use names, aliases or G-IDs:
    ```
    Groups> APT28, Cozy Bear, G0034
    ```
 6. Confirm. The output folder opens automatically.
+
+On a personal PC you can also double-click `Run ATTACK Overlap.bat`, which does the same thing.
 
 The ATT&CK data for all three matrices ships in `data/`, so the tool works straight after download, including on machines with no internet (see [Offline use](#offline-use)).
 
@@ -104,10 +115,6 @@ Interactive commands:
 | `quit` | exit |
 
 ## Command line
-
-```bash
-pip install -r requirements.txt
-```
 
 Enterprise is the default. Put `mobile` or `ics` first to use one of those matrices instead:
 
@@ -141,19 +148,26 @@ data/
 └── ics-attack.json
 ```
 
-Add `--offline` to any command (or to the `.bat` launcher) to guarantee the tool never touches the network:
+Add `--offline` to any command to guarantee the tool never touches the network:
 
 ```bash
 python attack_overlap.py --offline APT28 APT29 "Lazarus Group"
 python attack_overlap.py --offline mobile APT28 APT-C-23
-"Run ATTACK Overlap.bat" --offline
 ```
 
-Offline runs produce exactly the same outputs as online runs: both Navigator layers, the Excel workbooks, the PDFs and the slide legends. The slide legend font is bundled too. Every run prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`.
+Offline runs produce exactly the same outputs as online runs: both Navigator layers, the Excel workbooks, the PDFs and the slide legends. Every run prints which data file it used and how current it is, e.g. `ATT&CK Enterprise data: data/enterprise-attack.json (MITRE data as of 2026-07-31) [offline]`.
 
 To refresh the bundled data, run once on a machine with internet using `--update`, then copy the updated `data/` folder across.
 
-The offline machine still needs Python 3.10+ and the packages in `requirements.txt` (`openpyxl`, `reportlab`, `pillow`). To prepare them on an internet-connected PC with the same Python version, run `pip download -r requirements.txt -d wheels`, copy the `wheels` folder over, then run `pip install --no-index --find-links wheels -r requirements.txt` on the offline machine.
+## Nothing to install
+
+The tool runs on a standard Python 3.10+ install with **no `pip install`, no executables and no batch files**. That makes it suitable for locked-down workstations that only allow Python scripts.
+
+* **`vendor/`** holds the two libraries the tool uses, as plain, readable Python source (no compiled code): [openpyxl](https://openpyxl.readthedocs.io/) 3.1.5 (MIT license) and its helper et_xmlfile 2.0.0 (MIT), which write the Excel workbook, and [reportlab](https://www.reportlab.com/) 5.0.1 (BSD license), which writes the PDF. Each library's license file is inside its `*.dist-info` folder. The script loads them from `vendor/` automatically. If the workstation already has these libraries installed, the installed copies are used instead.
+* **Pillow is optional.** Pillow contains compiled code, so it isn't bundled. Without it, every output is still produced and the slide legend comes out as SVG only. reportlab normally loads Pillow at startup but only uses it to embed pictures, which these PDFs never do, so `vendor/_no_pillow/` gives it a small stand-in. That stand-in is only used when Pillow is missing. If Pillow is installed, the tool also writes PNG copies of the legend.
+* **`data/`** holds the ATT&CK data and **`fonts/`** the legend font, so nothing is downloaded.
+
+Tested on Python 3.11, 3.12 and 3.13 with no packages installed and network access blocked. The Navigator layers, Excel workbooks and PDFs come out identical to a normal install.
 
 ## Loading the layer in ATT&CK Navigator
 

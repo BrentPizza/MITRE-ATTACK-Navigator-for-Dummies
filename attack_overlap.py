@@ -16,7 +16,7 @@ grows with the number of groups selected (see color_bands()):
                  10 groups: green 1, yellow 2-4, orange 5-7, red 8-9, dark red 10
 
 Outputs (per run, in ./output/<timestamp>_<matrix>_<groups>/):
-    *_legend_for-light-navigator.png / *_legend_for-dark-navigator.png -> slide legends
+    *_legend_for-light-navigator.svg / *_legend_for-dark-navigator.svg -> slide legends (+ .png if Pillow is installed)
 and two output sets:
     1_Parent_Only/     parent T-codes only (sub-technique use rolled up into the parent)
     2_Parent_and_Sub/  parent T-codes plus the sub-techniques used, each with its own color
@@ -54,6 +54,21 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE / "data"
+
+# openpyxl and reportlab ship in vendor/ as plain pure-Python source, so the tool runs on a stock Python
+# with nothing installed. Appended (not prepended) so copies already installed on the machine take priority.
+if (HERE / "vendor").is_dir():
+    sys.path.append(str(HERE / "vendor"))
+
+# Pillow is optional (it is compiled code, which locked-down workstations may block). Without it every output
+# is still produced; the slide legend is written as SVG only, and reportlab gets a stand-in for the PIL module
+# it imports at load time but only uses to embed pictures (the PDFs here have none).
+try:
+    import PIL  # noqa: F401
+    HAVE_PILLOW = True
+except ImportError:
+    HAVE_PILLOW = False
+    sys.path.append(str(HERE / "vendor" / "_no_pillow"))
 OUT_DIR = HERE / "output"
 
 DOMAINS = {  # matrix -> (Navigator domain / data file name, download URL)
@@ -856,12 +871,17 @@ def write_pdf(path, attack, groups, rows, per_group_counts, title, opts):
 
 
 _LEGEND_FONT = None
+# Libre Franklin: open-source cut of Franklin Gothic (OFL). The variable font renders the PNG legend (at its Bold
+# instance); the static Bold copy is what reportlab can read to measure text for the pure-Python SVG legend.
+BUNDLED_FONT = HERE / "fonts" / "LibreFranklin-Bold.ttf"
+BUNDLED_VARIABLE_FONT = HERE / "fonts" / "LibreFranklin-VariableFont.ttf"
+SVG_FONT_FAMILY = "'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Arial, sans-serif"
 
 
 def legend_font_source():
-    """Franklin Gothic (bold weight) from the system fonts, else the bundled Libre Franklin (same design, OFL).
+    """Font for the PNG legend: Franklin Gothic (bold weight) from the system fonts, else the bundled Libre Franklin.
 
-    Returns (path, variation name or None, display name).
+    Returns (path, variation name or None, display name). Only called when Pillow is available.
     """
     global _LEGEND_FONT
     if _LEGEND_FONT:
@@ -888,7 +908,7 @@ def legend_font_source():
             r = next((i for i, w in enumerate(rank) if w in full), None)
             if r is not None and (best is None or r < best[0]):
                 best = (r, str(f), None, f"{fam} {style}".replace(" Regular", ""))
-    _LEGEND_FONT = best[1:] if best else (str(HERE / "fonts" / "LibreFranklin-VariableFont.ttf"), "Bold",
+    _LEGEND_FONT = best[1:] if best else (str(BUNDLED_VARIABLE_FONT), "Bold",
                                           "Libre Franklin Bold (Franklin Gothic not installed)")
     return _LEGEND_FONT
 
@@ -901,47 +921,89 @@ def legend_label(lo, hi, n):
     return f"{lo}\u2013{hi} of {n} groups"
 
 
-def write_legend(path, groups, theme):
-    """Slide legend sized to sit on a clip of the light or dark ATT&CK Navigator.
+LEGEND_THEMES = {   # HEAD, CELL, TXT, LINE, EDGE
+    # for the dark Navigator: dark gray cells, light text and a light outline so it stands off the page
+    "dark": ("#3F3F3F", "#2B2B2B", "#FFFFFF", "#7F7F7F", "#BFBFBF"),
+    # for the light Navigator: light gray cells, black text, dark outline against the white page
+    "light": ("#BFBFBF", "#D9D9D9", "#000000", "#7F7F7F", "#404040"),
+}
+HEAD_PT, CELL_PT = 68, 54
 
-    One table: a merged LEGEND header, then a color-only cell and its label per overlap level.
-    """
-    from PIL import Image, ImageDraw, ImageFont
-    src, var, _ = legend_font_source()
 
-    def font(size):
-        f = ImageFont.truetype(src, size)
-        if var:
-            f.set_variation_by_name(var)
-        return f
-
-    f_head, f_cell = font(68), font(54)
-    if theme == "dark":   # for the dark Navigator: dark gray cells, light text and a light outline so it stands off the page
-        HEAD, CELL, TXT, LINE, EDGE = "#3F3F3F", "#2B2B2B", "#FFFFFF", "#7F7F7F", "#BFBFBF"
-    else:                 # for the light Navigator: light gray cells, black text, dark outline against the white page
-        HEAD, CELL, TXT, LINE, EDGE = "#BFBFBF", "#D9D9D9", "#000000", "#7F7F7F", "#404040"
-
+def legend_layout(groups, measure):
+    """Shared geometry for the PNG and SVG legends. measure(text, size) -> width in px."""
     n = len(groups)
     rows = [(lv, legend_label(lo, hi, n)) for lv, lo, hi in BANDS]
     sw_w, row_h, head_h, tpad, edge = 170, 112, 124, 44, 6
-    lab_w = int(max(f_cell.getlength(t) for _, t in rows)) + 2 * tpad
-    width = max(sw_w + lab_w, int(f_head.getlength("LEGEND")) + 2 * tpad) + 2 * edge
+    lab_w = int(max(measure(t, CELL_PT) for _, t in rows)) + 2 * tpad
+    width = max(sw_w + lab_w, int(measure("LEGEND", HEAD_PT)) + 2 * tpad) + 2 * edge
     height = head_h + row_h * len(rows) + 2 * edge
-    x0, x1, x2 = edge, edge + sw_w, width - edge
+    return dict(rows=rows, sw_w=sw_w, row_h=row_h, head_h=head_h, tpad=tpad, edge=edge, width=width, height=height,
+                x0=edge, x1=edge + sw_w, x2=width - edge)
+
+
+def write_legend_png(path, groups, theme):
+    """Slide legend as PNG (needs Pillow). One table: a merged LEGEND header, then a color cell and label per level."""
+    from PIL import Image, ImageDraw, ImageFont
+    src, var, _ = legend_font_source()
+    fonts = {sz: ImageFont.truetype(src, sz) for sz in (HEAD_PT, CELL_PT)}
+    if var:
+        for f in fonts.values():
+            f.set_variation_by_name(var)
+    L = legend_layout(groups, lambda t, sz: fonts[sz].getlength(t))
+    HEAD, CELL, TXT, LINE, EDGE = LEGEND_THEMES[theme]
+    x0, x1, x2, edge, width, height = L["x0"], L["x1"], L["x2"], L["edge"], L["width"], L["height"]
 
     img = Image.new("RGB", (width, height), EDGE)
     d = ImageDraw.Draw(img)
-    d.rectangle([x0, edge, x2 - 1, edge + head_h], fill=HEAD)
-    d.text((width / 2, edge + head_h / 2), "LEGEND", font=f_head, fill=TXT, anchor="mm")
-    y = edge + head_h
-    for lv, text in rows:
+    d.rectangle([x0, edge, x2 - 1, edge + L["head_h"]], fill=HEAD)
+    d.text((width / 2, edge + L["head_h"] / 2), "LEGEND", font=fonts[HEAD_PT], fill=TXT, anchor="mm")
+    y = edge + L["head_h"]
+    for lv, text in L["rows"]:
         d.line([x0, y, x2, y], fill=LINE, width=3)
-        d.rectangle([x0, y + 2, x1 - 2, y + row_h], fill=LEVELS[lv][1])
-        d.rectangle([x1 + 2, y + 2, x2 - 1, y + row_h], fill=CELL)
-        d.text((x1 + tpad, y + row_h / 2 + 1), text, font=f_cell, fill=TXT, anchor="lm")
-        y += row_h
-    d.line([x1, edge + head_h, x1, height - edge], fill=LINE, width=3)
+        d.rectangle([x0, y + 2, x1 - 2, y + L["row_h"]], fill=LEVELS[lv][1])
+        d.rectangle([x1 + 2, y + 2, x2 - 1, y + L["row_h"]], fill=CELL)
+        d.text((x1 + L["tpad"], y + L["row_h"] / 2 + 1), text, font=fonts[CELL_PT], fill=TXT, anchor="lm")
+        y += L["row_h"]
+    d.line([x1, edge + L["head_h"], x1, height - edge], fill=LINE, width=3)
     img.save(path, dpi=(300, 300))
+
+
+def write_legend_svg(path, groups, theme):
+    """Slide legend as SVG, pure Python (no Pillow). Same table as the PNG; vector, so it stays sharp at any size.
+
+    Text uses the workstation's Franklin Gothic when PowerPoint renders it. Widths are measured with the bundled
+    Libre Franklin Bold plus 8% headroom, since installed Franklin Gothic cuts run slightly wider.
+    """
+    from xml.sax.saxutils import escape
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    if "LibreFranklin-Bold" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("LibreFranklin-Bold", str(BUNDLED_FONT)))
+    face = pdfmetrics.getFont("LibreFranklin-Bold").face
+    cap = getattr(face, "capHeight", 700) / 1000   # cap height as a fraction of the font size, to center text
+    L = legend_layout(groups, lambda t, sz: pdfmetrics.stringWidth(t, "LibreFranklin-Bold", sz) * 1.08)
+    HEAD, CELL, TXT, LINE, EDGE = LEGEND_THEMES[theme]
+    x0, x1, x2, edge, width, height = L["x0"], L["x1"], L["x2"], L["edge"], L["width"], L["height"]
+    base = lambda cy, sz: round(cy + cap * sz / 2, 1)   # baseline that vertically centers capital letters on cy
+    font = f'font-family="{SVG_FONT_FAMILY}" font-weight="bold"'
+
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+           f'<rect x="0" y="0" width="{width}" height="{height}" fill="{EDGE}"/>',
+           f'<rect x="{x0}" y="{edge}" width="{x2 - x0}" height="{L["head_h"]}" fill="{HEAD}"/>',
+           f'<text x="{width / 2}" y="{base(edge + L["head_h"] / 2, HEAD_PT)}" {font} font-size="{HEAD_PT}" '
+           f'fill="{TXT}" text-anchor="middle">LEGEND</text>']
+    y = edge + L["head_h"]
+    for lv, text in L["rows"]:
+        out += [f'<rect x="{x0}" y="{y}" width="{x1 - x0}" height="{L["row_h"]}" fill="{LEVELS[lv][1]}"/>',
+                f'<rect x="{x1}" y="{y}" width="{x2 - x1}" height="{L["row_h"]}" fill="{CELL}"/>',
+                f'<line x1="{x0}" y1="{y}" x2="{x2}" y2="{y}" stroke="{LINE}" stroke-width="3"/>',
+                f'<text x="{x1 + L["tpad"]}" y="{base(y + L["row_h"] / 2, CELL_PT)}" {font} font-size="{CELL_PT}" '
+                f'fill="{TXT}">{escape(text)}</text>']
+        y += L["row_h"]
+    out += [f'<line x1="{x1}" y1="{edge + L["head_h"]}" x2="{x1}" y2="{height - edge}" stroke="{LINE}" stroke-width="3"/>',
+            "</svg>"]
+    Path(path).write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
 # --------------------------------------------------------------------------- CLI
@@ -1127,9 +1189,13 @@ def main():
                 "subs": ("2_Parent_and_Sub", "parent-and-sub", " (Parent + Sub-techniques)", rows)}
     chosen = list(variants) if args.mode == "both" else [args.mode]
     out.mkdir(parents=True, exist_ok=True)
-    legends = [out / f"{base}_legend_for-{theme}-navigator.png" for theme in ("light", "dark")]
-    for lp, theme in zip(legends, ("light", "dark")):
-        write_legend(lp, groups, theme)
+    legends = []
+    for theme in ("light", "dark"):
+        legends.append(out / f"{base}_legend_for-{theme}-navigator.svg")
+        write_legend_svg(legends[-1], groups, theme)
+        if HAVE_PILLOW:
+            legends.append(out / f"{base}_legend_for-{theme}-navigator.png")
+            write_legend_png(legends[-1], groups, theme)
     for key in chosen:
         folder, suffix, title_suffix, vrows = variants[key]
         vout = out / folder
@@ -1146,9 +1212,10 @@ def main():
         print(f"  Navigator layer : {layer_p}")
         print(f"  Excel workbook  : {xlsx_p}")
         print(f"  PDF report      : {pdf_p}")
-    print(f"\n[Slide legend]  font: {legend_font_source()[2]}")
+    print("\n[Slide legend]  " + (f"PNG font: {legend_font_source()[2]}" if HAVE_PILLOW
+                                   else "SVG only (Pillow not installed, so no PNG copies)"))
     for lp in legends:
-        print(f"  PNG             : {lp}")
+        print(f"  {lp.suffix[1:].upper():<15} : {lp}")
     print("\nTip: open https://mitre-attack.github.io/attack-navigator/ -> Open Existing Layer -> Upload from local -> pick the _layer.json")
 
     if is_interactive and sys.platform == "win32":
